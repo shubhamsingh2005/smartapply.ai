@@ -1,0 +1,19 @@
+@echo off
+echo Stopping existing Node.js processes...
+taskkill /F /IM node.exe >nul 2>&1
+echo Cleaning up ports 3000 and 5000...
+for /f "tokens=5" %%a in ('netstat -aon ^| find ":3000" ^| find "LISTENING"') do taskkill /f /pid %%a >nul 2>&1
+for /f "tokens=5" %%a in ('netstat -aon ^| find ":5000" ^| find "LISTENING"') do taskkill /f /pid %%a >nul 2>&1
+timeout /t 2 >nul
+
+echo Starting Recycle-Bharat...
+
+echo Starting Backend...
+start "Backend" cmd /k "cd backend && call venv\Scripts\activate && pip install -r requirements.txt && python -m uvicorn app.main:app --reload --port 8000"
+
+echo Starting Frontend...
+start "Frontend" cmd /k "cd frontend && npm run dev"
+
+timeout /t 2 >nul
+echo Opening Browser...
+start http://localhost:5173

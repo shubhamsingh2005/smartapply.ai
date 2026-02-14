@@ -1,0 +1,16 @@
+# Environment files
+.env
+backend/.env
+
+# Service account keys
+backend/smartapply-ai-*.json
+
+# Node
+node_modules/
+
+# Logs
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
