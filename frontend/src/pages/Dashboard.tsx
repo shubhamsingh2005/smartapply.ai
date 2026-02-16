@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import api from '../utils/api';
 
 const Dashboard: React.FC = () => {
@@ -11,7 +10,6 @@ const Dashboard: React.FC = () => {
   const [darkMode, setDarkMode] = useState(() => {
     return localStorage.getItem('theme') === 'dark';
   });
-  const navigate = useNavigate();
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const [importType, setImportType] = useState<'linkedin' | 'resume' | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -34,45 +32,6 @@ const Dashboard: React.FC = () => {
       setLoading(false);
     }
   };
-
-  const calculateCompletion = () => {
-    if (!profile?.erp_data) return 0;
-    const data = profile.erp_data;
-    let score = 0;
-
-    // Weights (Total 100)
-    const weights: any = {
-      personal: 15, // Name, Headline, Summary
-      experience: 25, // At least one job
-      education: 15, // At least one degree
-      skills: 15, // At least 3 technical skills
-      projects: 15, // At least one project
-      basicExtras: 15 // Languages, Hobbies, Certs (5 each)
-    };
-
-    // Personal Logic
-    if (data.personal?.fullName && data.personal?.headline) score += weights.personal;
-
-    // Core Sections logic
-    if (data.experience?.length > 0) score += weights.experience;
-    if (data.education?.length > 0) score += weights.education;
-    if (data.projects?.length > 0) score += weights.projects;
-
-    // Skills logic
-    if (data.skills?.technical?.length >= 3) score += weights.skills;
-
-    // Extras logic
-    let extraScore = 0;
-    if (data.languages?.length > 0) extraScore += 5;
-    if (data.hobbies?.length > 0) extraScore += 5;
-    if (data.certifications?.length > 0) extraScore += 5;
-    score += Math.min(extraScore, weights.basicExtras);
-
-    return score;
-  };
-
-  const completionPercentage = calculateCompletion();
-
   const sections = [
     { name: 'Overview', icon: '🏠' },
     { name: 'Personal Info', icon: '👤', key: 'personal' },
@@ -150,9 +109,9 @@ const Dashboard: React.FC = () => {
       await api.put('/api/v1/profile/me', editData);
       setProfile(updatedProfile);
       setIsEditing(false);
-      alert('Changes saved successfully!');
+      alert('Profile updated successfully. Your changes have been saved.');
     } catch (error: any) {
-      alert('Failed to save changes: ' + (error.response?.data?.detail || error.message));
+      alert('Unable to save changes: ' + (error.response?.data?.detail || error.message));
     }
   };
 
@@ -266,6 +225,49 @@ const Dashboard: React.FC = () => {
     }
     setShowDiffModal(false);
     setDiffData(null);
+  };
+
+  // Helper function to detect platform from URL
+  const detectPlatform = (url: string): { name: string; icon: string } => {
+    if (!url) return { name: 'Custom Link', icon: '🔗' };
+
+    const urlLower = url.toLowerCase();
+
+    // Social Media Platforms
+    if (urlLower.includes('linkedin.com')) return { name: 'LinkedIn', icon: '💼' };
+    if (urlLower.includes('github.com')) return { name: 'GitHub', icon: '🐙' };
+    if (urlLower.includes('twitter.com') || urlLower.includes('x.com')) return { name: 'Twitter/X', icon: '🐦' };
+    if (urlLower.includes('facebook.com')) return { name: 'Facebook', icon: '📘' };
+    if (urlLower.includes('instagram.com')) return { name: 'Instagram', icon: '📷' };
+    if (urlLower.includes('youtube.com')) return { name: 'YouTube', icon: '📺' };
+    if (urlLower.includes('tiktok.com')) return { name: 'TikTok', icon: '🎵' };
+    if (urlLower.includes('medium.com')) return { name: 'Medium', icon: '📝' };
+    if (urlLower.includes('dev.to')) return { name: 'Dev.to', icon: '👨‍💻' };
+    if (urlLower.includes('stackoverflow.com')) return { name: 'Stack Overflow', icon: '📚' };
+    if (urlLower.includes('behance.net')) return { name: 'Behance', icon: '🎨' };
+    if (urlLower.includes('dribbble.com')) return { name: 'Dribbble', icon: '🏀' };
+    if (urlLower.includes('pinterest.com')) return { name: 'Pinterest', icon: '📌' };
+    if (urlLower.includes('reddit.com')) return { name: 'Reddit', icon: '🤖' };
+    if (urlLower.includes('discord.gg') || urlLower.includes('discord.com')) return { name: 'Discord', icon: '💬' };
+    if (urlLower.includes('telegram.')) return { name: 'Telegram', icon: '✈️' };
+    if (urlLower.includes('whatsapp.com')) return { name: 'WhatsApp', icon: '💚' };
+    if (urlLower.includes('slack.com')) return { name: 'Slack', icon: '💼' };
+
+    // Professional/Portfolio
+    if (urlLower.includes('gitlab.com')) return { name: 'GitLab', icon: '🦊' };
+    if (urlLower.includes('bitbucket.org')) return { name: 'Bitbucket', icon: '🪣' };
+    if (urlLower.includes('codepen.io')) return { name: 'CodePen', icon: '✒️' };
+    if (urlLower.includes('kaggle.com')) return { name: 'Kaggle', icon: '📊' };
+    if (urlLower.includes('leetcode.com')) return { name: 'LeetCode', icon: '💻' };
+    if (urlLower.includes('hackerrank.com')) return { name: 'HackerRank', icon: '🏆' };
+    if (urlLower.includes('codeforces.com')) return { name: 'Codeforces', icon: '⚔️' };
+
+    // Personal Website/Portfolio
+    if (urlLower.includes('portfolio') || urlLower.includes('personal')) return { name: 'Portfolio', icon: '🌐' };
+    if (urlLower.includes('blog')) return { name: 'Blog', icon: '✍️' };
+
+    // Default
+    return { name: 'Website', icon: '🔗' };
   };
 
   const mergeData = (newData: any) => {
@@ -632,7 +634,7 @@ const Dashboard: React.FC = () => {
         return (
           <div style={styles.listContainer}>
             <button
-              onClick={() => addNewItem('certifications', { name: '', issuer: '', date: '' })}
+              onClick={() => addNewItem('certifications', { name: '', issuer: '', issueDate: '', expiryDate: '', credentialId: '', verificationUrl: '', description: '' })}
               style={styles.addBtn}
             >
               + Add Certification
@@ -644,25 +646,51 @@ const Dashboard: React.FC = () => {
                   <button onClick={() => removeArrayItem('certifications', i)} style={styles.removeBtn}>Remove</button>
                 </div>
                 <input
-                  placeholder="Certification Name"
+                  placeholder="Certification Name *"
                   style={{ ...styles.input, marginBottom: '8px', backgroundColor: theme.inputBg, color: theme.text, borderColor: theme.border }}
                   value={cert.name || ''}
                   onChange={(e) => updateArrayItem('certifications', i, 'name', e.target.value)}
                 />
                 <div style={styles.grid2}>
                   <input
-                    placeholder="Issuer"
+                    placeholder="Issuing Organization *"
                     style={{ ...styles.input, backgroundColor: theme.inputBg, color: theme.text, borderColor: theme.border }}
                     value={cert.issuer || ''}
                     onChange={(e) => updateArrayItem('certifications', i, 'issuer', e.target.value)}
                   />
                   <input
-                    placeholder="Date"
+                    placeholder="Credential ID"
                     style={{ ...styles.input, backgroundColor: theme.inputBg, color: theme.text, borderColor: theme.border }}
-                    value={cert.date || ''}
-                    onChange={(e) => updateArrayItem('certifications', i, 'date', e.target.value)}
+                    value={cert.credentialId || ''}
+                    onChange={(e) => updateArrayItem('certifications', i, 'credentialId', e.target.value)}
+                  />
+                  <input
+                    type="date"
+                    placeholder="Issue Date"
+                    style={{ ...styles.input, backgroundColor: theme.inputBg, color: theme.text, borderColor: theme.border }}
+                    value={cert.issueDate || ''}
+                    onChange={(e) => updateArrayItem('certifications', i, 'issueDate', e.target.value)}
+                  />
+                  <input
+                    type="date"
+                    placeholder="Expiry Date (if applicable)"
+                    style={{ ...styles.input, backgroundColor: theme.inputBg, color: theme.text, borderColor: theme.border }}
+                    value={cert.expiryDate || ''}
+                    onChange={(e) => updateArrayItem('certifications', i, 'expiryDate', e.target.value)}
                   />
                 </div>
+                <input
+                  placeholder="Verification URL (e.g., Credly, Coursera certificate link)"
+                  style={{ ...styles.input, backgroundColor: theme.inputBg, color: theme.text, borderColor: theme.border }}
+                  value={cert.verificationUrl || ''}
+                  onChange={(e) => updateArrayItem('certifications', i, 'verificationUrl', e.target.value)}
+                />
+                <textarea
+                  placeholder="Description/Skills Covered (Optional)"
+                  style={{ ...styles.input, backgroundColor: theme.inputBg, color: theme.text, borderColor: theme.border, minHeight: '60px', resize: 'vertical', fontFamily: 'inherit' }}
+                  value={cert.description || ''}
+                  onChange={(e) => updateArrayItem('certifications', i, 'description', e.target.value)}
+                />
               </div>
             ))}
           </div>
@@ -868,7 +896,7 @@ const Dashboard: React.FC = () => {
         return (
           <div style={styles.listContainer}>
             <button
-              onClick={() => addNewItem('recommendations', { name: '', relation: '', contact: '', link: '' })}
+              onClick={() => addNewItem('recommendations', { name: '', relation: '', organization: '', position: '', contact: '', dateIssued: '', description: '', link: '' })}
               style={styles.addBtn}
             >
               + Add Recommendation
@@ -881,30 +909,55 @@ const Dashboard: React.FC = () => {
                 </div>
                 <div style={styles.grid2}>
                   <input
-                    placeholder="Recommender Name"
+                    placeholder="Recommender Name *"
                     style={{ ...styles.input, backgroundColor: theme.inputBg, color: theme.text, borderColor: theme.border }}
                     value={rec.name || ''}
                     onChange={(e) => updateArrayItem('recommendations', i, 'name', e.target.value)}
                   />
                   <input
-                    placeholder="Relation (e.g., Manager)"
+                    placeholder="Relation (e.g., Professor, Manager) *"
                     style={{ ...styles.input, backgroundColor: theme.inputBg, color: theme.text, borderColor: theme.border }}
                     value={rec.relation || ''}
                     onChange={(e) => updateArrayItem('recommendations', i, 'relation', e.target.value)}
                   />
                   <input
-                    placeholder="Contact Info"
+                    placeholder="Organization/Institution *"
+                    style={{ ...styles.input, backgroundColor: theme.inputBg, color: theme.text, borderColor: theme.border }}
+                    value={rec.organization || ''}
+                    onChange={(e) => updateArrayItem('recommendations', i, 'organization', e.target.value)}
+                  />
+                  <input
+                    placeholder="Their Position/Title"
+                    style={{ ...styles.input, backgroundColor: theme.inputBg, color: theme.text, borderColor: theme.border }}
+                    value={rec.position || ''}
+                    onChange={(e) => updateArrayItem('recommendations', i, 'position', e.target.value)}
+                  />
+                  <input
+                    placeholder="Contact Info (Email/Phone)"
                     style={{ ...styles.input, backgroundColor: theme.inputBg, color: theme.text, borderColor: theme.border }}
                     value={rec.contact || ''}
                     onChange={(e) => updateArrayItem('recommendations', i, 'contact', e.target.value)}
                   />
                   <input
-                    placeholder="Link to Letter (if applicable)"
+                    type="date"
+                    placeholder="Date of Issue"
                     style={{ ...styles.input, backgroundColor: theme.inputBg, color: theme.text, borderColor: theme.border }}
-                    value={rec.link || ''}
-                    onChange={(e) => updateArrayItem('recommendations', i, 'link', e.target.value)}
+                    value={rec.dateIssued || ''}
+                    onChange={(e) => updateArrayItem('recommendations', i, 'dateIssued', e.target.value)}
                   />
                 </div>
+                <textarea
+                  placeholder="Description/Context (Optional - e.g., what they recommended you for)"
+                  style={{ ...styles.input, backgroundColor: theme.inputBg, color: theme.text, borderColor: theme.border, minHeight: '80px', resize: 'vertical', fontFamily: 'inherit' }}
+                  value={rec.description || ''}
+                  onChange={(e) => updateArrayItem('recommendations', i, 'description', e.target.value)}
+                />
+                <input
+                  placeholder="Link to Letter (if available)"
+                  style={{ ...styles.input, backgroundColor: theme.inputBg, color: theme.text, borderColor: theme.border }}
+                  value={rec.link || ''}
+                  onChange={(e) => updateArrayItem('recommendations', i, 'link', e.target.value)}
+                />
               </div>
             ))}
           </div>
@@ -913,23 +966,40 @@ const Dashboard: React.FC = () => {
       case 'Social Links':
         return (
           <div style={{ ...styles.card, backgroundColor: theme.cardBg, borderColor: theme.border }}>
-            {Object.keys(editData.socialLinks || { linkedin: '', github: '', portfolio: '' }).map((key) => (
-              <div key={key} style={styles.formGroup}>
-                <label style={{ ...styles.labelBlock, color: theme.text, textTransform: 'capitalize' }}>{key}</label>
-                <input
-                  style={{ ...styles.input, backgroundColor: theme.inputBg, color: theme.text, borderColor: theme.border }}
-                  value={editData.socialLinks?.[key] || ''}
-                  onChange={(e) => updateEditData('socialLinks', { ...(editData.socialLinks || {}), [key]: e.target.value })}
-                  placeholder={`https://${key}.com/...`}
-                />
-              </div>
-            ))}
-            {/* Fallback add key if empty */}
+            {Object.entries(editData.socialLinks || {}).map(([key, url]: [string, any]) => {
+              const platform = detectPlatform(url);
+              return (
+                <div key={key} style={{ ...styles.formGroup, position: 'relative' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                    <span style={{ fontSize: '20px' }}>{platform.icon}</span>
+                    <label style={{ ...styles.labelBlock, color: theme.text, margin: 0, fontWeight: 600 }}>
+                      {platform.name}
+                    </label>
+                    <button
+                      onClick={() => {
+                        const newLinks = { ...editData.socialLinks };
+                        delete newLinks[key];
+                        updateEditData('socialLinks', newLinks);
+                      }}
+                      style={{ marginLeft: 'auto', fontSize: '12px', background: 'none', border: 'none', color: '#f85149', cursor: 'pointer', padding: '4px 8px' }}
+                    >
+                      Remove
+                    </button>
+                  </div>
+                  <input
+                    style={{ ...styles.input, backgroundColor: theme.inputBg, color: theme.text, borderColor: theme.border, paddingLeft: '12px' }}
+                    value={url || ''}
+                    onChange={(e) => updateEditData('socialLinks', { ...(editData.socialLinks || {}), [key]: e.target.value })}
+                    placeholder="Enter URL (e.g., https://linkedin.com/in/username)"
+                  />
+                </div>
+              );
+            })}
             <button
-              onClick={() => updateEditData('socialLinks', { ...editData.socialLinks, ['new_link_' + Date.now()]: '' })}
-              style={{ marginTop: '10px', fontSize: '12px', background: 'none', border: 'none', color: '#0969da', cursor: 'pointer', textAlign: 'left', padding: 0 }}
+              onClick={() => updateEditData('socialLinks', { ...editData.socialLinks, ['link_' + Date.now()]: '' })}
+              style={{ marginTop: '10px', fontSize: '14px', background: 'none', border: '1px dashed #d0d7de', color: '#0969da', cursor: 'pointer', padding: '10px', borderRadius: '6px', width: '100%', fontWeight: 600 }}
             >
-              + Add Custom Link
+              + Add Social Link
             </button>
           </div>
         );
@@ -1129,17 +1199,66 @@ const Dashboard: React.FC = () => {
         return (
           <div style={styles.listContainer}>
             {erpData?.certifications?.length > 0 ? (
-              erpData.certifications.map((c: any, i: number) => (
-                <div key={i} style={{ ...styles.listItem, backgroundColor: theme.cardBg, borderColor: theme.border }}>
-                  <div style={styles.itemHeader}>
-                    <div style={styles.certLogoFallback}>📜</div>
-                    <div>
-                      <h3 style={{ ...styles.itemTitle, color: theme.text }}>{c.name}</h3>
-                      <div style={{ ...styles.itemSubtitle, color: theme.textSecondary }}>{c.issuer} • {c.date}</div>
+              erpData.certifications.map((c: any, i: number) => {
+                const isExpired = c.expiryDate && new Date(c.expiryDate) < new Date();
+                const isExpiringSoon = c.expiryDate && !isExpired && new Date(c.expiryDate) < new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+
+                return (
+                  <div key={i} style={{ ...styles.listItem, backgroundColor: theme.cardBg, borderColor: theme.border, padding: '20px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+                          <div style={styles.certLogoFallback}>📜</div>
+                          <div style={{ flex: 1 }}>
+                            <h3 style={{ ...styles.itemTitle, color: theme.text, margin: 0, marginBottom: '4px' }}>{c.name || 'Unnamed Certification'}</h3>
+                            <div style={{ fontSize: '14px', color: theme.textSecondary, fontWeight: 500 }}>{c.issuer || 'Unknown Issuer'}</div>
+                          </div>
+                        </div>
+
+                        <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', marginTop: '12px' }}>
+                          {c.credentialId && (
+                            <div style={{ fontSize: '13px', color: theme.textSecondary, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                              <span>🆔</span> <strong>ID:</strong> {c.credentialId}
+                            </div>
+                          )}
+                          {c.issueDate && (
+                            <div style={{ fontSize: '13px', color: theme.textSecondary, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                              <span>📅</span> <strong>Issued:</strong> {new Date(c.issueDate).toLocaleDateString('en-US', { year: 'numeric', month: 'short' })}
+                            </div>
+                          )}
+                          {c.expiryDate && (
+                            <div style={{
+                              fontSize: '13px',
+                              color: isExpired ? '#f85149' : isExpiringSoon ? '#d29922' : theme.textSecondary,
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              fontWeight: isExpired || isExpiringSoon ? 600 : 400
+                            }}>
+                              <span>{isExpired ? '⚠️' : '⏰'}</span> <strong>Expires:</strong> {new Date(c.expiryDate).toLocaleDateString('en-US', { year: 'numeric', month: 'short' })}
+                              {isExpired && <span style={{ marginLeft: '4px', fontSize: '11px', backgroundColor: '#f851491a', padding: '2px 6px', borderRadius: '4px' }}>EXPIRED</span>}
+                              {isExpiringSoon && <span style={{ marginLeft: '4px', fontSize: '11px', backgroundColor: '#d299221a', padding: '2px 6px', borderRadius: '4px' }}>EXPIRING SOON</span>}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {c.verificationUrl && (
+                        <a href={c.verificationUrl} target="_blank" rel="noreferrer" style={{ ...styles.link, whiteSpace: 'nowrap', fontSize: '13px' }}>
+                          Verify ↗
+                        </a>
+                      )}
                     </div>
+
+                    {c.description && (
+                      <div style={{ marginTop: '12px', padding: '12px', backgroundColor: theme.bg, borderRadius: '6px', border: `1px solid ${theme.border}` }}>
+                        <div style={{ fontSize: '11px', fontWeight: 600, color: theme.textSecondary, marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Skills & Description</div>
+                        <p style={{ fontSize: '13px', color: theme.text, margin: 0, lineHeight: '1.6' }}>{c.description}</p>
+                      </div>
+                    )}
                   </div>
-                </div>
-              ))
+                );
+              })
             ) : <EmptyState theme={theme} text="No certifications found." />}
           </div>
         );
@@ -1237,11 +1356,50 @@ const Dashboard: React.FC = () => {
           <div style={styles.listContainer}>
             {erpData?.recommendations?.length > 0 ? (
               erpData.recommendations.map((rec: any, i: number) => (
-                <div key={i} style={{ ...styles.listItem, backgroundColor: theme.cardBg, borderColor: theme.border }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <h3 style={{ ...styles.itemTitle, color: theme.text }}>{rec.name}</h3>
-                    {rec.url && <a href={rec.url} target="_blank" rel="noreferrer" style={styles.link}>View Document ↗</a>}
+                <div key={i} style={{ ...styles.listItem, backgroundColor: theme.cardBg, borderColor: theme.border, padding: '20px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
+                    <div style={{ flex: 1 }}>
+                      <h3 style={{ ...styles.itemTitle, color: theme.text, marginBottom: '8px' }}>{rec.name || 'Unnamed Recommender'}</h3>
+                      <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginBottom: '8px' }}>
+                        {rec.relation && (
+                          <span style={{ fontSize: '14px', color: theme.textSecondary, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            <span>👤</span> {rec.relation}
+                          </span>
+                        )}
+                        {rec.organization && (
+                          <span style={{ fontSize: '14px', color: theme.textSecondary, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            <span>🏢</span> {rec.organization}
+                          </span>
+                        )}
+                        {rec.position && (
+                          <span style={{ fontSize: '14px', color: theme.textSecondary, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            <span>💼</span> {rec.position}
+                          </span>
+                        )}
+                      </div>
+                      {rec.dateIssued && (
+                        <div style={{ fontSize: '13px', color: theme.textSecondary, marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          <span>📅</span> Issued: {new Date(rec.dateIssued).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+                        </div>
+                      )}
+                    </div>
+                    {rec.link && (
+                      <a href={rec.link} target="_blank" rel="noreferrer" style={{ ...styles.link, whiteSpace: 'nowrap' }}>
+                        View Letter ↗
+                      </a>
+                    )}
                   </div>
+                  {rec.description && (
+                    <div style={{ marginTop: '12px', padding: '12px', backgroundColor: theme.bg, borderRadius: '6px', border: `1px solid ${theme.border}` }}>
+                      <div style={{ fontSize: '12px', fontWeight: 600, color: theme.textSecondary, marginBottom: '6px', textTransform: 'uppercase' }}>Description</div>
+                      <p style={{ fontSize: '14px', color: theme.text, margin: 0, lineHeight: '1.6' }}>{rec.description}</p>
+                    </div>
+                  )}
+                  {rec.contact && (
+                    <div style={{ marginTop: '12px', fontSize: '13px', color: theme.textSecondary, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <span>📧</span> Contact: {rec.contact}
+                    </div>
+                  )}
                 </div>
               ))
             ) : <EmptyState theme={theme} text="No recommendations uploaded." />}
@@ -1252,12 +1410,39 @@ const Dashboard: React.FC = () => {
         return (
           <div style={{ ...styles.card, backgroundColor: theme.cardBg, borderColor: theme.border }}>
             {Object.entries(erpData?.socialLinks || {}).length > 0 ? (
-              Object.entries(erpData.socialLinks).map(([k, v]: [string, any]) => (
-                <div key={k} style={styles.infoRow}>
-                  <span style={{ ...styles.label, textTransform: 'capitalize', color: theme.textSecondary }}>{k}</span>
-                  <a href={v} target="_blank" rel="noreferrer" style={{ ...styles.link, marginTop: 0 }}>{v}</a>
-                </div>
-              ))
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                {Object.entries(erpData.socialLinks)
+                  .filter(([_, url]) => url) // Filter out empty URLs
+                  .map(([k, v]: [string, any]) => {
+                    const platform = detectPlatform(v);
+                    return (
+                      <div key={k} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px', backgroundColor: theme.bg, borderRadius: '8px', border: `1px solid ${theme.border}` }}>
+                        <span style={{ fontSize: '24px', flexShrink: 0 }}>{platform.icon}</span>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontWeight: 600, fontSize: '14px', color: theme.text, marginBottom: '4px' }}>
+                            {platform.name}
+                          </div>
+                          <a
+                            href={v}
+                            target="_blank"
+                            rel="noreferrer"
+                            style={{
+                              ...styles.link,
+                              marginTop: 0,
+                              fontSize: '13px',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap',
+                              display: 'block'
+                            }}
+                          >
+                            {v}
+                          </a>
+                        </div>
+                      </div>
+                    );
+                  })}
+              </div>
             ) : <EmptyState theme={theme} text="No social links found." />}
           </div>
         );
@@ -1268,177 +1453,219 @@ const Dashboard: React.FC = () => {
   };
 
   return (
-    <div style={{ ...styles.container, backgroundColor: theme.bg }}>
-      <nav style={{ ...styles.sidebar, backgroundColor: theme.sidebarBg, borderColor: theme.sidebarBorder }}>
-        <div style={styles.brand}>SmartApply.AI</div>
-        <div style={styles.navLinks}>
-          {sections.map(s => (
+    <>
+      <style>
+        {`
+          /* Hide scrollbar for Chrome, Safari and Opera */
+          .navLinks::-webkit-scrollbar {
+            display: none;
+          }
+        `}
+      </style>
+      <div style={{ ...styles.container, backgroundColor: theme.bg }}>
+        <nav style={{ ...styles.sidebar, backgroundColor: theme.sidebarBg, borderColor: theme.sidebarBorder }}>
+          <div style={styles.brand}>SmartApply.AI</div>
+          <div style={styles.navLinks} className="navLinks">
+
+            <div style={{ ...styles.sectionHeader, color: theme.textSecondary }}>Profile</div>
+
+            {sections.map(s => (
+              <button
+                key={s.name}
+                onClick={() => {
+                  if (isEditing && !window.confirm("You have unsaved changes. Switching sections will discard them. Continue?")) return;
+                  setIsEditing(false); // Reset edit on switch
+                  setActiveSection(s.name);
+                }}
+                style={{
+                  ...styles.navItem,
+                  backgroundColor: activeSection === s.name ? theme.activeNavBg : 'transparent',
+                  color: activeSection === s.name ? theme.activeNavText : theme.navText
+                }}
+              >
+                <span style={{ marginRight: '10px' }}>{s.icon}</span> {s.name}
+              </button>
+            ))}
+
+            <div style={{ ...styles.sectionHeader, color: theme.textSecondary, marginTop: '24px' }}>Settings</div>
+
+            {/* Dark Mode Toggle */}
+            <div style={{
+              ...styles.navItem,
+              justifyContent: 'space-between',
+              color: theme.navText,
+              cursor: 'default',
+              backgroundColor: 'transparent'
+            }}>
+              <span style={{ display: 'flex', alignItems: 'center' }}>
+                <span style={{ marginRight: '10px' }}>🌙</span> Dark Mode
+              </span>
+              <button
+                onClick={toggleTheme}
+                style={{
+                  ...styles.toggleBtn,
+                  backgroundColor: darkMode ? '#2da44e' : '#d0d7de',
+                  justifyContent: darkMode ? 'flex-end' : 'flex-start'
+                }}
+              >
+                <div style={styles.toggleKnob} />
+              </button>
+            </div>
+
             <button
-              key={s.name}
-              onClick={() => {
-                if (isEditing && !window.confirm("Switching sections will lose unsaved changes. Continue?")) return;
-                setIsEditing(false); // Reset edit on switch
-                setActiveSection(s.name);
-              }}
+              onClick={() => alert("Password management will be available soon. Please contact support if you need immediate assistance.")}
               style={{
                 ...styles.navItem,
-                backgroundColor: activeSection === s.name ? theme.activeNavBg : 'transparent',
-                color: activeSection === s.name ? theme.activeNavText : theme.navText
+                backgroundColor: 'transparent',
+                color: theme.navText
               }}
             >
-              <span style={{ marginRight: '10px' }}>{s.icon}</span> {s.name}
+              <span style={{ marginRight: '10px' }}>🔒</span> Change Password
             </button>
-          ))}
-        </div>
 
-        <div style={styles.sidebarFooter}>
-          <div style={styles.themeToggle}>
-            <span style={{ color: theme.navText, fontSize: '14px' }}>Dark Mode</span>
             <button
-              onClick={toggleTheme}
+              onClick={() => alert("Our support team is here to help. This feature will be available shortly.")}
               style={{
-                ...styles.toggleBtn,
-                backgroundColor: darkMode ? '#2da44e' : '#d0d7de',
-                justifyContent: darkMode ? 'flex-end' : 'flex-start'
+                ...styles.navItem,
+                backgroundColor: 'transparent',
+                color: theme.navText
               }}
             >
-              <div style={styles.toggleKnob} />
+              <span style={{ marginRight: '10px' }}>❓</span> Help & Support
             </button>
-          </div>
-          <button onClick={handleLogout} style={styles.logoutBtn}>Logout</button>
-        </div>
-      </nav>
 
-      <main style={styles.main}>
-        <header style={{ ...styles.header, backgroundColor: theme.headerBg, borderColor: theme.border }}>
-          <div style={styles.userInfo}>
-            {profile?.user_info?.profile_image ? (
-              <img src={profile.user_info.profile_image} alt="User" style={styles.avatar} />
-            ) : (
-              <div style={styles.avatarPlaceholder}>{profile?.user_info?.full_name?.charAt(0) || 'U'}</div>
-            )}
-            <div>
-              <h2 style={{ ...styles.userName, color: theme.text }}>{profile?.user_info?.full_name || 'Professional'}</h2>
-              <p style={{ ...styles.userEmail, color: theme.textSecondary }}>{profile?.user_info?.email}</p>
-            </div>
           </div>
-          <div style={styles.headerActions}>
-            <div style={styles.completionCard}>
-              <div style={{ ...styles.completionLabel, color: theme.textSecondary }}>
-                ERP Readiness <span style={{ marginLeft: 'auto', color: '#2da44e' }}>{completionPercentage}%</span>
+
+          <div style={styles.sidebarFooter}>
+            <button onClick={handleLogout} style={styles.logoutBtn}>Logout</button>
+          </div>
+        </nav>
+
+        <main style={styles.main}>
+          <header style={{ ...styles.header, backgroundColor: theme.headerBg, borderColor: theme.border }}>
+            <div style={styles.userInfo}>
+              {profile?.user_info?.profile_image ? (
+                <img src={profile.user_info.profile_image} alt="User" style={styles.avatar} />
+              ) : (
+                <div style={styles.avatarPlaceholder}>{profile?.user_info?.full_name?.charAt(0) || 'U'}</div>
+              )}
+              <div>
+                <h2 style={{ ...styles.userName, color: theme.text }}>{profile?.user_info?.full_name || 'Professional'}</h2>
+                <p style={{ ...styles.userEmail, color: theme.textSecondary }}>{profile?.user_info?.email}</p>
               </div>
-              <div style={styles.progressBar}><div style={{ ...styles.progress, width: `${completionPercentage}%` }}></div></div>
             </div>
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <button
-                onClick={() => handleImportClick('linkedin')}
-                disabled={uploading}
-                style={{ ...styles.generateBtn, backgroundColor: '#0077b5', opacity: uploading ? 0.7 : 1 }}>
-                {uploading && importType === 'linkedin' ? '...' : '📥 LinkedIn PDF'}
-              </button>
-              <button
-                onClick={() => handleImportClick('resume')}
-                disabled={uploading}
-                style={{ ...styles.generateBtn, backgroundColor: '#ea4335', opacity: uploading ? 0.7 : 1 }}>
-                {uploading && importType === 'resume' ? '...' : '📄 Resume PDF'}
-              </button>
-              <input
-                type="file"
-                accept=".pdf"
-                ref={fileInputRef}
-                style={{ display: 'none' }}
-                onChange={handleFileChange}
-              />
-            </div>
-          </div>
-        </header>
-
-        <section style={styles.content}>
-          <div style={styles.topRow}>
-            <h1 style={{ ...styles.sectionTitle, color: theme.text }}>
-              {isEditing ? `Editing ${activeSection}` : activeSection}
-            </h1>
-            {!isEditing ? (
-              <button
-                onClick={startEditing}
-                disabled={activeSection === 'Overview'}
-                style={{ ...styles.editBtn, backgroundColor: theme.cardBg, color: theme.text, borderColor: theme.border, opacity: activeSection === 'Overview' ? 0.5 : 1 }}>
-                ✏️ Edit Section
-              </button>
-            ) : (
-              <div style={{ display: 'flex', gap: '10px' }}>
-                <button onClick={cancelEditing} style={{ ...styles.editBtn, backgroundColor: 'transparent', color: theme.textSecondary, borderColor: 'transparent' }}>
-                  Cancel
+            <div style={styles.headerActions}>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button
+                  onClick={() => handleImportClick('linkedin')}
+                  disabled={uploading}
+                  style={{ ...styles.generateBtn, backgroundColor: '#0077b5', opacity: uploading ? 0.7 : 1 }}>
+                  {uploading && importType === 'linkedin' ? '...' : '📥 LinkedIn PDF'}
                 </button>
-                <button onClick={handleSave} style={{ ...styles.editBtn, backgroundColor: '#1f883d', color: 'white', borderColor: 'transparent' }}>
-                  Save Changes
+                <button
+                  onClick={() => handleImportClick('resume')}
+                  disabled={uploading}
+                  style={{ ...styles.generateBtn, backgroundColor: '#ea4335', opacity: uploading ? 0.7 : 1 }}>
+                  {uploading && importType === 'resume' ? '...' : '📄 Resume PDF'}
                 </button>
+                <input
+                  type="file"
+                  accept=".pdf"
+                  ref={fileInputRef}
+                  style={{ display: 'none' }}
+                  onChange={handleFileChange}
+                />
               </div>
-            )}
+            </div>
+          </header>
 
-          </div>
-
-          {renderContent()}
-        </section>
-      </main>
-
-      {/* Diff Review Modal */}
-      {showDiffModal && diffData && (
-        <div style={styles.modalOverlay}>
-          <div style={{ ...styles.modalContent, backgroundColor: theme.cardBg, color: theme.text }}>
-            <h2 style={{ borderBottom: `1px solid ${theme.border}`, paddingBottom: '10px' }}>Review Imports</h2>
-            <p style={{ fontSize: '14px', color: theme.textSecondary }}>The following changes will be applied to your profile. Sections not listed here remain unchanged.</p>
-
-            <div style={styles.diffContainer}>
-              {Object.entries(diffData.diff).map(([key, changes]: [string, any]) => (
-                <div key={key} style={{ marginBottom: '15px' }}>
-                  <h3 style={{ textTransform: 'capitalize', color: '#0969da', fontSize: '16px', margin: '0 0 5px 0' }}>{key} Changes</h3>
-
-                  {/* Personal Field Diffs */}
-                  {key === 'personal' && Object.entries(changes).map(([field, val]: [string, any]) => (
-                    <div key={field} style={{ display: 'flex', fontSize: '13px', marginBottom: '4px' }}>
-                      <span style={{ fontWeight: 600, width: '100px' }}>{field}:</span>
-                      <span style={{ color: '#f85149', textDecoration: 'line-through', marginRight: '10px' }}>{val.old}</span>
-                      →
-                      <span style={{ color: '#2da44e', marginLeft: '10px', fontWeight: 600 }}>{val.new}</span>
-                    </div>
-                  ))}
-
-                  {/* Array/List Diffs */}
-                  {['experience', 'education', 'projects', 'certifications', 'internships', 'volunteer', 'extracurricular', 'languages', 'recommendations'].includes(key) && (
-                    <div style={{ fontSize: '13px' }}>
-                      <div style={{ marginBottom: '4px' }}>Status: <span style={{ color: '#d29922', fontWeight: 600 }}>REPLACE ENTIRE LIST</span></div>
-                      <div>Old items: {changes.countOld}</div>
-                      <div>New items: <span style={{ color: '#2da44e', fontWeight: 600 }}>{changes.countNew}</span></div>
-                    </div>
-                  )}
-
-                  {/* Skill Diffs */}
-                  {key === 'skills' && Object.entries(changes).map(([cat, val]: [string, any]) => (
-                    <div key={cat} style={{ fontSize: '13px', marginLeft: '10px', marginTop: '5px' }}>
-                      <strong>{cat} Skills:</strong> Replace {val.countOld} items with <span style={{ color: '#2da44e' }}>{val.countNew} items</span>.
-                    </div>
-                  ))}
-
-                  {/* Hobbies Diffs */}
-                  {key === 'hobbies' && (
-                    <div style={{ fontSize: '13px' }}>
-                      <div>Old: {changes.countOld} tags</div>
-                      <div>New: <span style={{ color: '#2da44e' }}>{changes.countNew} tags</span> (Replaced)</div>
-                    </div>
-                  )}
+          <section style={styles.content}>
+            <div style={styles.topRow}>
+              <h1 style={{ ...styles.sectionTitle, color: theme.text }}>
+                {isEditing ? `Editing ${activeSection}` : activeSection}
+              </h1>
+              {!isEditing ? (
+                <button
+                  onClick={startEditing}
+                  disabled={activeSection === 'Overview'}
+                  style={{ ...styles.editBtn, backgroundColor: theme.cardBg, color: theme.text, borderColor: theme.border, opacity: activeSection === 'Overview' ? 0.5 : 1 }}>
+                  ✏️ Edit Section
+                </button>
+              ) : (
+                <div style={{ display: 'flex', gap: '10px' }}>
+                  <button onClick={cancelEditing} style={{ ...styles.editBtn, backgroundColor: 'transparent', color: theme.textSecondary, borderColor: 'transparent' }}>
+                    Cancel
+                  </button>
+                  <button onClick={handleSave} style={{ ...styles.editBtn, backgroundColor: '#1f883d', color: 'white', borderColor: 'transparent' }}>
+                    Save Changes
+                  </button>
                 </div>
-              ))}
+              )}
+
             </div>
 
-            <div style={styles.modalActions}>
-              <button onClick={() => setShowDiffModal(false)} style={styles.cancelBtn}>Cancel</button>
-              <button onClick={confirmMerge} style={styles.saveBtn}>Confirm Update</button>
+            {renderContent()}
+          </section>
+        </main>
+
+        {/* Diff Review Modal */}
+        {showDiffModal && diffData && (
+          <div style={styles.modalOverlay}>
+            <div style={{ ...styles.modalContent, backgroundColor: theme.cardBg, color: theme.text }}>
+              <h2 style={{ borderBottom: `1px solid ${theme.border}`, paddingBottom: '10px' }}>Review Imports</h2>
+              <p style={{ fontSize: '14px', color: theme.textSecondary }}>The following changes will be applied to your profile. Sections not listed here remain unchanged.</p>
+
+              <div style={styles.diffContainer}>
+                {Object.entries(diffData.diff).map(([key, changes]: [string, any]) => (
+                  <div key={key} style={{ marginBottom: '15px' }}>
+                    <h3 style={{ textTransform: 'capitalize', color: '#0969da', fontSize: '16px', margin: '0 0 5px 0' }}>{key} Changes</h3>
+
+                    {/* Personal Field Diffs */}
+                    {key === 'personal' && Object.entries(changes).map(([field, val]: [string, any]) => (
+                      <div key={field} style={{ display: 'flex', fontSize: '13px', marginBottom: '4px' }}>
+                        <span style={{ fontWeight: 600, width: '100px' }}>{field}:</span>
+                        <span style={{ color: '#f85149', textDecoration: 'line-through', marginRight: '10px' }}>{val.old}</span>
+                        →
+                        <span style={{ color: '#2da44e', marginLeft: '10px', fontWeight: 600 }}>{val.new}</span>
+                      </div>
+                    ))}
+
+                    {/* Array/List Diffs */}
+                    {['experience', 'education', 'projects', 'certifications', 'internships', 'volunteer', 'extracurricular', 'languages', 'recommendations'].includes(key) && (
+                      <div style={{ fontSize: '13px' }}>
+                        <div style={{ marginBottom: '4px' }}>Status: <span style={{ color: '#d29922', fontWeight: 600 }}>REPLACE ENTIRE LIST</span></div>
+                        <div>Old items: {changes.countOld}</div>
+                        <div>New items: <span style={{ color: '#2da44e', fontWeight: 600 }}>{changes.countNew}</span></div>
+                      </div>
+                    )}
+
+                    {/* Skill Diffs */}
+                    {key === 'skills' && Object.entries(changes).map(([cat, val]: [string, any]) => (
+                      <div key={cat} style={{ fontSize: '13px', marginLeft: '10px', marginTop: '5px' }}>
+                        <strong>{cat} Skills:</strong> Replace {val.countOld} items with <span style={{ color: '#2da44e' }}>{val.countNew} items</span>.
+                      </div>
+                    ))}
+
+                    {/* Hobbies Diffs */}
+                    {key === 'hobbies' && (
+                      <div style={{ fontSize: '13px' }}>
+                        <div>Old: {changes.countOld} tags</div>
+                        <div>New: <span style={{ color: '#2da44e' }}>{changes.countNew} tags</span> (Replaced)</div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              <div style={styles.modalActions}>
+                <button onClick={() => setShowDiffModal(false)} style={styles.cancelBtn}>Cancel</button>
+                <button onClick={confirmMerge} style={styles.saveBtn}>Confirm Update</button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
-    </div>
+        )}
+      </div>
+    </>
   );
 };
 
@@ -1490,7 +1717,17 @@ const styles: { [key: string]: React.CSSProperties } = {
   loading: { height: '100vh', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', fontWeight: 600 },
   sidebar: { width: '280px', padding: '24px', display: 'flex', flexDirection: 'column', gap: '8px', borderRight: '1px solid', flexShrink: 0 },
   brand: { color: '#ffffff', fontSize: '22px', fontWeight: 800, marginBottom: '32px', letterSpacing: '-0.5px' },
-  navLinks: { flex: 1, display: 'flex', flexDirection: 'column', gap: '4px', overflowY: 'auto' },
+  sectionHeader: { fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px', padding: '0 12px' },
+  navLinks: {
+    flex: 1,
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '4px',
+    overflowY: 'auto',
+    scrollbarWidth: 'none', // Firefox
+    msOverflowStyle: 'none', // IE and Edge
+    WebkitOverflowScrolling: 'touch' // Smooth scrolling on iOS
+  } as React.CSSProperties,
   navItem: { border: 'none', padding: '12px 16px', borderRadius: '8px', textAlign: 'left', cursor: 'pointer', fontSize: '14px', transition: '0.2s', fontWeight: 500, display: 'flex', alignItems: 'center' },
   sidebarFooter: { marginTop: '20px', display: 'flex', flexDirection: 'column', gap: '16px' },
   logoutBtn: { backgroundColor: 'transparent', color: '#f85149', border: '1px solid #f85149', padding: '10px', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, width: '100%' },

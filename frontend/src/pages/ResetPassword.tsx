@@ -14,16 +14,16 @@ const ResetPassword: React.FC = () => {
     const handleReset = async (e: React.FormEvent) => {
         e.preventDefault();
         if (newPassword !== confirmPassword) {
-            alert("Passwords do not match");
+            alert("Passwords do not match. Please ensure both entries are identical.");
             return;
         }
         setIsLoading(true);
         try {
             await api.post('/api/v1/auth/reset-password', { email, otp, new_password: newPassword });
-            alert("Password reset successfully!");
+            alert("Your password has been reset successfully. You can now sign in with your new password.");
             navigate('/login');
         } catch (error: any) {
-            alert(error.response?.data?.detail || "Failed to reset password");
+            alert(error.response?.data?.detail || "Unable to reset password. Please verify your code and try again.");
         } finally {
             setIsLoading(false);
         }
@@ -33,8 +33,8 @@ const ResetPassword: React.FC = () => {
         return (
             <div style={styles.container}>
                 <div style={styles.card}>
-                    <p>Session expired. Please request a new reset code.</p>
-                    <button onClick={() => navigate('/forgot-password')} style={styles.primaryButton}>Go Back</button>
+                    <p>Your session has expired. Please request a new password reset code.</p>
+                    <button onClick={() => navigate('/forgot-password')} style={styles.primaryButton}>Request New Code</button>
                 </div>
             </div>
         );
@@ -47,8 +47,8 @@ const ResetPassword: React.FC = () => {
             </div>
 
             <div style={styles.card}>
-                <h2 style={styles.cardTitle}>Set new password</h2>
-                <p style={styles.infoText}>Enter the code sent to <strong>{email}</strong> and your new password.</p>
+                <h2 style={styles.cardTitle}>Set New Password</h2>
+                <p style={styles.infoText}>Enter the verification code sent to <strong>{email}</strong> and choose a new password for your account.</p>
 
                 <form onSubmit={handleReset} style={styles.form}>
                     <div style={styles.inputGroup}>

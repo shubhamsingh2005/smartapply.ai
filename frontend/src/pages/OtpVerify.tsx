@@ -13,8 +13,8 @@ const OtpVerify: React.FC = () => {
     return (
       <div style={styles.container}>
         <div style={styles.card}>
-          <p>Session expired. Please signup again.</p>
-          <button onClick={() => navigate('/signup')} style={styles.primaryButton}>Go to Signup</button>
+          <p>Your session has expired. Please return to the signup page to create your account.</p>
+          <button onClick={() => navigate('/signup')} style={styles.primaryButton}>Return to Signup</button>
         </div>
       </div>
     );
@@ -27,14 +27,14 @@ const OtpVerify: React.FC = () => {
       const response = await api.post('/api/v1/auth/verify-otp', { email, otp });
       if (response.data.access_token) {
         localStorage.setItem('access_token', response.data.access_token);
-        alert('Email verified successfully! proceeding to onboarding...');
+        alert('Email verified successfully! Proceeding to complete your profile setup...');
         navigate('/onboarding');
       } else {
-        alert('Email verified successfully! Please login.');
+        alert('Email verified successfully! You can now sign in to your account.');
         navigate('/login');
       }
     } catch (error: any) {
-      alert(error.response?.data?.detail || "Verification failed");
+      alert(error.response?.data?.detail || "Verification failed. Please check your code and try again.");
     } finally {
       setIsLoading(false);
     }
@@ -43,9 +43,9 @@ const OtpVerify: React.FC = () => {
   const handleResend = async () => {
     try {
       await api.post('/api/v1/auth/resend-otp', { email });
-      alert('OTP resent to your email!');
+      alert('A new verification code has been sent to your email address.');
     } catch (error: any) {
-      alert("Failed to resend OTP");
+      alert("Unable to resend verification code. Please try again.");
     }
   };
 
@@ -57,7 +57,7 @@ const OtpVerify: React.FC = () => {
 
       <div style={styles.card}>
         <h2 style={styles.cardTitle}>Verify your email</h2>
-        <p style={styles.infoText}>We've sent a 6-digit code to <strong>{email}</strong></p>
+        <p style={styles.infoText}>We've sent a 6-digit verification code to <strong>{email}</strong>. Please enter it below to confirm your email address.</p>
 
         <form onSubmit={handleVerify} style={styles.form}>
           <div style={styles.inputGroup}>

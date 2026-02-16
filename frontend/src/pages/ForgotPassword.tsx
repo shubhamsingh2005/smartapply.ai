@@ -15,7 +15,7 @@ const ForgotPassword: React.FC = () => {
             alert(response.data.message);
             navigate('/reset-password', { state: { email } });
         } catch (error: any) {
-            alert(error.response?.data?.detail || "Something went wrong");
+            alert(error.response?.data?.detail || "An error occurred. Please try again.");
         } finally {
             setIsLoading(false);
         }
@@ -28,8 +28,8 @@ const ForgotPassword: React.FC = () => {
             </div>
 
             <div style={styles.card}>
-                <h2 style={styles.cardTitle}>Reset your password</h2>
-                <p style={styles.infoText}>Enter your email address and we will send you a code to reset your password.</p>
+                <h2 style={styles.cardTitle}>Reset Your Password</h2>
+                <p style={styles.infoText}>Enter your email address and we'll send you a verification code to reset your password.</p>
 
                 <form onSubmit={handleForgot} style={styles.form}>
                     <div style={styles.inputGroup}>
