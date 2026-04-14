@@ -26,7 +26,8 @@ const OnboardingSelection: React.FC = () => {
       });
       // Navigate to the onboarding form with the parsed data
       navigate('/onboarding/review', { state: { parsedData: response.data, mode: activeMode } });
-    } catch (error: any) {
+    } catch (err) {
+      const error = err as any;
       console.error("Parsing Error:", error);
       const errorMsg = error.response?.data?.detail || `Error parsing ${activeMode === 'linkedin' ? 'LinkedIn PDF' : 'Resume'}. Please try again or use Manual Entry.`;
       alert(errorMsg);
@@ -88,6 +89,8 @@ const OnboardingSelection: React.FC = () => {
         style={{ display: 'none' }}
         accept="application/pdf"
         onChange={handleFileUpload}
+        title="Upload PDF Profile"
+        aria-label="Upload PDF Profile"
       />
 
       <div style={styles.header}>

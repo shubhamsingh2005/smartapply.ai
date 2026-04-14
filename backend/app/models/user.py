@@ -27,3 +27,4 @@ class User(Base):
 
     # ERP Relationship
     profile = relationship("Profile", back_populates="user", uselist=False)
+    job_analyses = relationship("JobAnalysis", back_populates="user", cascade="all, delete-orphan")

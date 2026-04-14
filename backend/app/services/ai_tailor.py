@@ -13,9 +13,9 @@ class AITailor:
             return {"error": "AI Key missing. Please add GOOGLE_AI_API_KEY to .env"}
 
         prompt = f"""
-        You are an expert Career Coach and Technical Recruiter. 
-        Compare the following Candidate ERP Data with the Job Description (JD).
-        
+        You are an expert technical recruiter and career strategist.
+        Analyze the match between this Candidate ERP and the Job Description.
+
         CANDIDATE ERP DATA:
         {json.dumps(erp_data)}
 
@@ -23,19 +23,25 @@ class AITailor:
         {jd_text}
 
         TASK:
-        1. Calculate a 'Match Score' (0-100).
-        2. Identify 'Missing Keywords/Skills' that are in the JD but not the ERP.
-        3. Identify 'Strongest Matches' (Skills/Experiences the candidate has that the JD wants).
-        4. Provide 'Optimization Tips' for the resume.
-        5. Generate a 'Tailored Summary' for this specific role.
+        1. Extract Job Intelligence: Identify Job Title, Company, and required Experience Level.
+        2. Fit/Gap Analysis:
+           - Explicit Matches: Skills clearly stated in both.
+           - Explicit Gaps: Skills requested in JD but missing in ERP.
+           - Implied Gaps: Skills the role implies (e.g., if it's a 'Lead' role, 'Mentorship' is an implied gap if not in ERP).
+        3. Compliance Score: 0-100 overall fit.
+        4. Confidence Mapping: For each match, rate the evidence strength (High/Medium/Low).
 
-        RETURN ONLY VALID JSON:
+        RETURN JSON:
         {{
-            "match_score": 85,
-            "missing_skills": [],
-            "strong_matches": [],
-            "optimization_tips": [],
-            "tailored_summary": ""
+            "job_info": {{ "title": "", "company": "", "experience_required": "" }},
+            "match_score": 0,
+            "fit_analysis": {{
+                "explicit_matches": [{{ "skill": "", "confidence": "high/medium/low", "evidence": "" }}],
+                "explicit_gaps": [],
+                "implied_gaps": [],
+                "explanation": ""
+            }},
+            "improvement_plan": []
         }}
         """
 

@@ -13,6 +13,8 @@ from app.core import security
 from app.core.config import settings
 from app.utils.otp import generate_otp, get_otp_expiration
 from app.utils.email import send_otp_email, send_reset_email
+from app.services.audit import AuditLogger
+
 
 router = APIRouter()
 reusable_oauth2 = OAuth2PasswordBearer(tokenUrl=f"{settings.API_V1_STR}/auth/login/email")
@@ -51,8 +53,11 @@ def signup_by_email(user_in: UserCreate, db: Session = Depends(get_db)) -> Any:
     # Send real email
     send_otp_email(new_user.email, otp)
     
+    AuditLogger.log(db, "AUTHENTICATION", "SIGNUP_INITIATED", user_id=new_user.id, metadata={"email": new_user.email})
+    
     print(f"DEBUG: OTP for {new_user.email} is {otp}")
     return new_user
+
 
 @router.post("/verify-otp")
 def verify_otp(otp_in: OTPVerify, db: Session = Depends(get_db)) -> Any:
@@ -66,7 +71,9 @@ def verify_otp(otp_in: OTPVerify, db: Session = Depends(get_db)) -> Any:
     
     # Generate token for auto-login
     access_token = security.create_access_token(user.id)
+    AuditLogger.log(db, "AUTHENTICATION", "OTP_VERIFIED", user_id=user.id)
     return {"message": "Verified", "access_token": access_token, "token_type": "bearer"}
+
 
 @router.post("/login/email", response_model=Token)
 def login_by_email(user_in: UserCreate, db: Session = Depends(get_db)) -> Any:
@@ -74,9 +81,12 @@ def login_by_email(user_in: UserCreate, db: Session = Depends(get_db)) -> Any:
     if not user or not security.verify_password(user_in.password, user.hashed_password):
         raise HTTPException(status_code=400, detail="Incorrect email or password")
     if not user.is_verified:
+        AuditLogger.log(db, "AUTHENTICATION", "LOGIN_FAILED_UNVERIFIED", user_id=user.id, status="FAILURE")
         raise HTTPException(status_code=403, detail="Verify email first")
     
+    AuditLogger.log(db, "AUTHENTICATION", "LOGIN_SUCCESS", user_id=user.id)
     return {"access_token": security.create_access_token(user.id), "token_type": "bearer"}
+
 
 @router.post("/resend-otp")
 def resend_otp(resend_in: OTPResend, db: Session = Depends(get_db)) -> Any:

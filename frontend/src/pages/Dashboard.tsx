@@ -1,12 +1,222 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import api from '../utils/api';
+import cssStyles from './Dashboard.module.css';
+
+interface PersonalInfo {
+  fullName?: string;
+  email?: string;
+  phone?: string;
+  location?: string;
+  about?: string;
+  headline?: string;
+  summary?: string;
+  [key: string]: any;
+}
+
+
+interface Experience {
+  role?: string;
+  company?: string;
+  startDate?: string;
+  endDate?: string;
+  description?: string;
+  rationale?: string; // Phase 5 rationale
+}
+
+interface Education {
+  institution?: string;
+  degree?: string;
+  fieldOfStudy?: string;
+  startDate?: string;
+  endDate?: string;
+  description?: string;
+}
+
+
+interface Certification {
+  name?: string;
+  issuer?: string;
+  date?: string;
+  credentialId?: string;
+  issueDate?: string;
+  expiryDate?: string;
+  verificationUrl?: string;
+  description?: string;
+}
+
+interface Project {
+  title?: string;
+  role?: string;
+  technologies?: string[];
+  description?: string;
+  link?: string;
+}
+
+
+interface Internship {
+  role?: string;
+  company?: string;
+  startDate?: string;
+  endDate?: string;
+  description?: string;
+}
+
+interface Volunteer {
+  role?: string;
+  organization?: string;
+  startDate?: string;
+  endDate?: string;
+  description?: string;
+}
+
+interface ExtraCurricular {
+  role?: string;
+  title?: string; // Some parts of code use title
+  organization?: string;
+  description?: string;
+}
+
+
+interface Language {
+  language?: string;
+  proficiency?: string;
+}
+
+interface Recommendation {
+  name?: string;
+  relation?: string;
+  organization?: string;
+  position?: string;
+  contact?: string;
+  dateIssued?: string;
+  description?: string;
+  link?: string;
+}
+
+interface SkillSet {
+  technical: string[];
+  interpersonal: string[];
+  intrapersonal: string[];
+  [key: string]: string[] | undefined;
+}
+
+
+interface ERPData {
+  personal?: PersonalInfo;
+  experience?: Experience[];
+  education?: Education[];
+  projects?: Project[];
+  skills?: SkillSet;
+  certifications?: Certification[];
+  internships?: Internship[];
+  volunteer?: Volunteer[];
+  extracurricular?: ExtraCurricular[];
+  languages?: Language[];
+  recommendations?: Recommendation[];
+  socialLinks?: Record<string, string>;
+  [key: string]: any;
+}
+
+
+
+interface ProfileMetadata {
+  completeness?: {
+    overall: number;
+    sections: Record<string, number>;
+  };
+  last_updated?: string;
+  version_count?: number;
+}
+
+
+interface Profile {
+  user_info?: {
+    full_name: string;
+    email: string;
+    profile_image?: string;
+  };
+  erp_data?: ERPData;
+  meta?: ProfileMetadata;
+}
+
+interface AutomationLog {
+  timestamp: string;
+  level: string;
+  message: string;
+}
+
+interface AssetBullet {
+  original: string;
+  optimized: string;
+  rationale: string;
+}
+
+interface Assets {
+  resume_assets?: {
+    tailored_summary?: string;
+    bullet_optimizations?: AssetBullet[];
+  };
+  cover_letter: string;
+}
+
+interface Analysis {
+  job_info?: {
+    title: string;
+    company: string;
+  };
+  relevance?: {
+    relevance_score: number;
+    color: string;
+    level: string;
+    explanation: string;
+    breakdown?: {
+      skill_overlap: number;
+      experience_alignment: number;
+      contextual_fit: number;
+    };
+  };
+  match_score?: number;
+  skills_analysis?: {
+    matching_skills: string[];
+    missing_skills: { skill: string; rationale: string }[];
+  };
+  experience_alignment?: {
+    score: number;
+    feedback: string;
+  };
+  fit_analysis?: {
+    strengths: string[];
+    weaknesses: string[];
+    risk_factors: string[];
+    overall_sentiment: string;
+    explicit_matches?: { skill: string; evidence: string; confidence: string }[];
+    explicit_gaps?: string[];
+    implied_gaps?: string[];
+    explanation?: string;
+  };
+
+  improvement_plan?: {
+    action_items: string[];
+    recommended_reading: string[];
+  };
+}
+
+
+interface Version {
+  id: string;
+  version_number: number;
+  is_active: boolean;
+  created_at: string;
+  label?: string;
+}
+
 
 const Dashboard: React.FC = () => {
-  const [profile, setProfile] = useState<any>(null);
+  const [profile, setProfile] = useState<Profile | null>(null);
   const [activeSection, setActiveSection] = useState('Overview');
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
-  const [editData, setEditData] = useState<any>({}); // Temp state for editing
+  const [editData, setEditData] = useState<ERPData>({}); // Temp state for editing
   const [darkMode, setDarkMode] = useState(() => {
     return localStorage.getItem('theme') === 'dark';
   });
@@ -15,10 +225,32 @@ const Dashboard: React.FC = () => {
   const [uploading, setUploading] = useState(false);
   const [diffData, setDiffData] = useState<any>(null); // To store proposed changes for review
   const [showDiffModal, setShowDiffModal] = useState(false);
+  const [jdText, setJdText] = useState('');
+  const [analysis, setAnalysis] = useState<Analysis | null>(null);
+  const [analyzing, setAnalyzing] = useState(false);
+  const [history, setHistory] = useState<Version[]>([]);
+  const [assets, setAssets] = useState<Assets | null>(null);
+
+  const [generatingAssets, setGeneratingAssets] = useState(false);
+  const [automationTaskId, setAutomationTaskId] = useState<string | null>(null);
+  const [automationLogs, setAutomationLogs] = useState<AutomationLog[]>([]);
+  const [automationStatus, setAutomationStatus] = useState<string>('');
+  const [interactionRequired, setInteractionRequired] = useState(false);
+  const logsEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     fetchProfile();
+    fetchHistory();
   }, []);
+
+  const fetchHistory = async () => {
+    try {
+      const response = await api.get('/api/v1/profile/history');
+      setHistory(response.data);
+    } catch {
+      console.error("Failed to fetch history");
+    }
+  };
 
   const fetchProfile = async () => {
     try {
@@ -26,7 +258,7 @@ const Dashboard: React.FC = () => {
       setProfile(response.data);
       // Initialize editData with existing structure or defaults
       setEditData(response.data?.erp_data || {});
-    } catch (error) {
+    } catch {
       console.error("Failed to fetch profile");
     } finally {
       setLoading(false);
@@ -49,7 +281,9 @@ const Dashboard: React.FC = () => {
     { name: 'Hobbies & Interests', icon: '🎨', key: 'hobbies' },
     { name: 'Languages', icon: '🗣️', key: 'languages' },
     { name: 'Recommendation Letters', icon: '📝', key: 'recommendations' },
-    { name: 'Social Links', icon: '🌐', key: 'socialLinks' }
+    { name: 'Social Links', icon: '🌐', key: 'socialLinks' },
+    { name: 'Job Intelligence', icon: '🧠', key: 'jobAnalysis' },
+    { name: 'Version History', icon: '📜', key: 'history' }
   ];
 
   const handleLogout = () => {
@@ -93,9 +327,82 @@ const Dashboard: React.FC = () => {
   };
 
   const cancelEditing = () => {
-    setIsEditing(false);
     setEditData(profile?.erp_data || {});
   };
+
+  const handleAnalyzeJob = async () => {
+    if (!jdText.trim()) return;
+    setAnalyzing(true);
+    try {
+      const response = await api.post('/api/v1/ai/analyze-match', { jd_text: jdText });
+      setAnalysis(response.data);
+    } catch (error) {
+      console.error("Match Analysis failed");
+      alert("Analysis failed. Check your API key or JD text.");
+    } finally {
+      setAnalyzing(false);
+    }
+  };
+
+  const handleGenerateAssets = async () => {
+    if (!analysis) return;
+    setGeneratingAssets(true);
+    try {
+      const response = await api.post('/api/v1/ai/generate-assets', { 
+        jd_text: jdText,
+        analysis_results: analysis
+      });
+      setAssets(response.data);
+    } catch {
+      console.error("Asset generation failed");
+      alert("Failed to generate application assets. Check API key.");
+    } finally {
+      setGeneratingAssets(false);
+    }
+  };
+
+  const handleStartAutomation = async (jobUrl: string) => {
+    if (!jobUrl) return;
+    try {
+      const response = await api.post('/api/v1/automation/start', {
+        job_url: jobUrl,
+        erp_data: profile?.erp_data || {},
+        assets: assets
+      });
+      setAutomationTaskId(response.data.task_id);
+    } catch {
+      console.error("Failed to start automation");
+    }
+  };
+
+  const handleProvideInteraction = async (input: string) => {
+    if (!automationTaskId) return;
+    try {
+      await api.post(`/api/v1/automation/interact/${automationTaskId}`, { response: input });
+      setInteractionRequired(false);
+    } catch {
+      console.error("Failed to provide interaction");
+    }
+  };
+
+  // Status Polling Effect
+  useEffect(() => {
+    let interval: any;
+    if (automationTaskId && automationStatus !== 'COMPLETED' && automationStatus !== 'FAILED') {
+      interval = setInterval(async () => {
+        try {
+          const res = await api.get(`/api/v1/automation/status/${automationTaskId}`);
+          setAutomationStatus(res.data.status);
+          setAutomationLogs(res.data.logs);
+          setInteractionRequired(res.data.interaction_required);
+          logsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        } catch (e) {
+          console.error("Status check failed");
+        }
+      }, 2000);
+    }
+    return () => clearInterval(interval);
+  }, [automationTaskId, automationStatus]);
 
   const handleSave = async () => {
     try {
@@ -354,59 +661,75 @@ const Dashboard: React.FC = () => {
           <div style={{ ...styles.card, backgroundColor: theme.cardBg, borderColor: theme.border }}>
             <div style={styles.grid2}>
               <div style={styles.formGroup}>
-                <label style={{ ...styles.labelBlock, color: theme.text }}>Full Name</label>
+                <label htmlFor="fullName" style={{ ...styles.labelBlock, color: theme.text }}>Full Name</label>
                 <input
+                  id="fullName"
                   style={{ ...styles.input, backgroundColor: theme.inputBg, color: theme.text, borderColor: theme.border }}
                   value={editData.personal?.fullName || ''}
                   onChange={(e) => updateEditData('personal', { ...editData.personal, fullName: e.target.value })}
+                  title="Full Name"
+                  placeholder="Enter your full name"
                 />
               </div>
               <div style={styles.formGroup}>
-                <label style={{ ...styles.labelBlock, color: theme.text }}>Contact Email (Display)</label>
+                <label htmlFor="emailDisplay" style={{ ...styles.labelBlock, color: theme.text }}>Contact Email (Display)</label>
                 <input
+                  id="emailDisplay"
                   style={{ ...styles.input, backgroundColor: theme.inputBg, color: theme.text, borderColor: theme.border }}
                   value={editData.personal?.email || profile?.user_info?.email || ''}
                   onChange={(e) => updateEditData('personal', { ...editData.personal, email: e.target.value })}
+                  title="Contact Email"
+                  placeholder="Enter contact email"
                 />
               </div>
             </div>
 
             <div style={styles.grid2}>
               <div style={styles.formGroup}>
-                <label style={{ ...styles.labelBlock, color: theme.text }}>Phone</label>
+                <label htmlFor="phone" style={{ ...styles.labelBlock, color: theme.text }}>Phone</label>
                 <input
+                  id="phone"
                   style={{ ...styles.input, backgroundColor: theme.inputBg, color: theme.text, borderColor: theme.border }}
                   value={editData.personal?.phone || ''}
                   onChange={(e) => updateEditData('personal', { ...editData.personal, phone: e.target.value })}
                   placeholder="+1 (555) 000-0000"
+                  title="Phone Number"
                 />
               </div>
               <div style={styles.formGroup}>
-                <label style={{ ...styles.labelBlock, color: theme.text }}>Location</label>
+                <label htmlFor="location" style={{ ...styles.labelBlock, color: theme.text }}>Location</label>
                 <input
+                  id="location"
                   style={{ ...styles.input, backgroundColor: theme.inputBg, color: theme.text, borderColor: theme.border }}
                   value={editData.personal?.location || ''}
                   onChange={(e) => updateEditData('personal', { ...editData.personal, location: e.target.value })}
                   placeholder="City, Country"
+                  title="Location"
                 />
               </div>
             </div>
 
             <div style={styles.formGroup}>
-              <label style={{ ...styles.labelBlock, color: theme.text }}>Headline</label>
+              <label htmlFor="headline" style={{ ...styles.labelBlock, color: theme.text }}>Headline</label>
               <input
+                id="headline"
                 style={{ ...styles.input, backgroundColor: theme.inputBg, color: theme.text, borderColor: theme.border }}
                 value={editData.personal?.headline || ''}
                 onChange={(e) => updateEditData('personal', { ...editData.personal, headline: e.target.value })}
+                title="Professional Headline"
+                placeholder="e.g. Senior Software Engineer"
               />
             </div>
             <div style={styles.formGroup}>
-              <label style={{ ...styles.labelBlock, color: theme.text }}>Professional Summary</label>
+              <label htmlFor="summary" style={{ ...styles.labelBlock, color: theme.text }}>Professional Summary</label>
               <textarea
+                id="summary"
                 style={{ ...styles.textarea, backgroundColor: theme.inputBg, color: theme.text, borderColor: theme.border }}
                 value={editData.personal?.summary || ''}
                 onChange={(e) => updateEditData('personal', { ...editData.personal, summary: e.target.value })}
                 rows={6}
+                title="Professional Summary"
+                placeholder="Write a brief overview of your career..."
               />
             </div>
           </div>
@@ -421,7 +744,8 @@ const Dashboard: React.FC = () => {
             >
               + Add Position
             </button>
-            {(editData.experience || []).map((exp: any, i: number) => (
+            {(editData.experience || []).map((exp: Experience, i: number) => (
+
               <div key={i} style={{ ...styles.editCard, backgroundColor: theme.cardBg, borderColor: theme.border }}>
                 <div style={styles.editCardHeader}>
                   <h4 style={{ margin: 0, color: theme.textSecondary }}>Position #{i + 1}</h4>
@@ -476,7 +800,8 @@ const Dashboard: React.FC = () => {
             >
               + Add Education
             </button>
-            {(editData.education || []).map((edu: any, i: number) => (
+            {(editData.education || []).map((edu: Education, i: number) => (
+
               <div key={i} style={{ ...styles.editCard, backgroundColor: theme.cardBg, borderColor: theme.border }}>
                 <div style={styles.editCardHeader}>
                   <h4 style={{ margin: 0, color: theme.textSecondary }}>Education #{i + 1}</h4>
@@ -583,7 +908,8 @@ const Dashboard: React.FC = () => {
             >
               + Add Project
             </button>
-            {(editData.projects || []).map((proj: any, i: number) => (
+            {(editData.projects || []).map((proj: Project, i: number) => (
+
               <div key={i} style={{ ...styles.editCard, backgroundColor: theme.cardBg, borderColor: theme.border }}>
                 <div style={styles.editCardHeader}>
                   <h4 style={{ margin: 0, color: theme.textSecondary }}>Project #{i + 1}</h4>
@@ -639,7 +965,8 @@ const Dashboard: React.FC = () => {
             >
               + Add Certification
             </button>
-            {(editData.certifications || []).map((cert: any, i: number) => (
+            {(editData.certifications || []).map((cert: Certification, i: number) => (
+
               <div key={i} style={{ ...styles.editCard, backgroundColor: theme.cardBg, borderColor: theme.border }}>
                 <div style={styles.editCardHeader}>
                   <h4 style={{ margin: 0, color: theme.textSecondary }}>Cert #{i + 1}</h4>
@@ -705,7 +1032,8 @@ const Dashboard: React.FC = () => {
             >
               + Add Internship
             </button>
-            {(editData.internships || []).map((intern: any, i: number) => (
+            {(editData.internships || []).map((intern: Internship, i: number) => (
+
               <div key={i} style={{ ...styles.editCard, backgroundColor: theme.cardBg, borderColor: theme.border }}>
                 <div style={styles.editCardHeader}>
                   <h4 style={{ margin: 0, color: theme.textSecondary }}>Internship #{i + 1}</h4>
@@ -758,7 +1086,8 @@ const Dashboard: React.FC = () => {
             >
               + Add Volunteer Work
             </button>
-            {(editData.volunteer || []).map((vol: any, i: number) => (
+            {(editData.volunteer || []).map((vol: Volunteer, i: number) => (
+
               <div key={i} style={{ ...styles.editCard, backgroundColor: theme.cardBg, borderColor: theme.border }}>
                 <div style={styles.editCardHeader}>
                   <h4 style={{ margin: 0, color: theme.textSecondary }}>Volunteer #{i + 1}</h4>
@@ -811,7 +1140,8 @@ const Dashboard: React.FC = () => {
             >
               + Add Activity
             </button>
-            {(editData.extracurricular || []).map((act: any, i: number) => (
+            {(editData.extracurricular || []).map((act: ExtraCurricular, i: number) => (
+
               <div key={i} style={{ ...styles.editCard, backgroundColor: theme.cardBg, borderColor: theme.border }}>
                 <div style={styles.editCardHeader}>
                   <h4 style={{ margin: 0, color: theme.textSecondary }}>Activity #{i + 1}</h4>
@@ -861,7 +1191,8 @@ const Dashboard: React.FC = () => {
             >
               + Add Language
             </button>
-            {(editData.languages || []).map((lang: any, i: number) => (
+            {(editData.languages || []).map((lang: Language, i: number) => (
+
               <div key={i} style={{ ...styles.editCard, backgroundColor: theme.cardBg, borderColor: theme.border }}>
                 <div style={styles.editCardHeader}>
                   <h4 style={{ margin: 0, color: theme.textSecondary }}>Language #{i + 1}</h4>
@@ -875,9 +1206,11 @@ const Dashboard: React.FC = () => {
                     onChange={(e) => updateArrayItem('languages', i, 'language', e.target.value)}
                   />
                   <select
+                    id={`proficiency-${i}`}
                     style={{ ...styles.input, backgroundColor: theme.inputBg, color: theme.text, borderColor: theme.border }}
                     value={lang.proficiency || ''}
                     onChange={(e) => updateArrayItem('languages', i, 'proficiency', e.target.value)}
+                    title="Language Proficiency"
                   >
                     <option value="">Select Proficiency</option>
                     <option value="Native">Native</option>
@@ -901,7 +1234,8 @@ const Dashboard: React.FC = () => {
             >
               + Add Recommendation
             </button>
-            {(editData.recommendations || []).map((rec: any, i: number) => (
+            {(editData.recommendations || []).map((rec: Recommendation, i: number) => (
+
               <div key={i} style={{ ...styles.editCard, backgroundColor: theme.cardBg, borderColor: theme.border }}>
                 <div style={styles.editCardHeader}>
                   <h4 style={{ margin: 0, color: theme.textSecondary }}>Recommendation #{i + 1}</h4>
@@ -1018,22 +1352,51 @@ const Dashboard: React.FC = () => {
     const erpData = profile?.erp_data || {};
 
     switch (activeSection) {
-      case 'Overview':
+      case 'Overview': {
+        const completeness = profile?.meta?.completeness || { overall: 0, sections: {} };
+        const lastUpdated = profile?.meta?.last_updated ? new Date(profile.meta.last_updated).toLocaleString() : 'Never';
+        
         return (
           <div style={styles.dashboardGrid}>
+            {/* Completion Progress Card */}
+            <div style={{ ...styles.wideCard, backgroundColor: theme.cardBg, borderColor: theme.border, display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <h3 style={{ ...styles.cardHeader, color: theme.textSecondary, margin: 0 }}>Career Identity Completion</h3>
+                <span style={{ fontSize: '24px', fontWeight: 800, color: '#2da44e' }}>{completeness.overall}%</span>
+              </div>
+              <div style={{ width: '100%', height: '12px', backgroundColor: theme.bg, borderRadius: '6px', overflow: 'hidden', border: `1px solid ${theme.border}` }}>
+                <div style={{ width: `${completeness.overall}%`, height: '100%', backgroundColor: '#2da44e', transition: 'width 0.5s ease-out' }} />
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '15px' }}>
+                {Object.entries(completeness.sections).map(([name, val]: [string, number]) => (
+                  <div key={name} style={{ fontSize: '12px' }}>
+                    <div style={{ color: theme.textSecondary, textTransform: 'capitalize', marginBottom: '4px' }}>{name}</div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                       <div style={{ flex: 1, height: '4px', backgroundColor: theme.bg, borderRadius: '2px' }}>
+                         <div style={{ width: `${val}%`, height: '100%', backgroundColor: val === 100 ? '#2da44e' : '#0969da', borderRadius: '2px' }} />
+                       </div>
+                       <span style={{ color: theme.text, fontWeight: 600 }}>{val}%</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div style={{ ...styles.statsCard, backgroundColor: theme.cardBg, borderColor: theme.border }}>
+              <h3 style={{ ...styles.cardHeader, color: theme.textSecondary }}>System Status</h3>
+              <div style={{ marginTop: '10px' }}>
+                <div style={{ fontSize: '13px', color: theme.textSecondary, marginBottom: '5px' }}>Last Audited:</div>
+                <div style={{ fontSize: '14px', fontWeight: 600, color: theme.text }}>{lastUpdated}</div>
+                <div style={{ fontSize: '13px', color: theme.textSecondary, marginTop: '15px', marginBottom: '5px' }}>Version History:</div>
+                <div style={{ display: 'inline-block', padding: '2px 8px', backgroundColor: '#0969da1a', color: '#0969da', borderRadius: '12px', fontSize: '12px', fontWeight: 600 }}>
+                  {profile?.meta?.version_count || 0} Snapshot(s)
+                </div>
+              </div>
+            </div>
+
             <div style={{ ...styles.statsCard, backgroundColor: theme.cardBg, borderColor: theme.border }}>
               <h3 style={{ ...styles.cardHeader, color: theme.textSecondary }}>Extracted Role</h3>
               <p style={styles.highlightText}>{erpData?.personal?.headline || erpData?.headline || 'Not set'}</p>
-            </div>
-            <div style={{ ...styles.statsCard, backgroundColor: theme.cardBg, borderColor: theme.border }}>
-              <h3 style={{ ...styles.cardHeader, color: theme.textSecondary }}>Experience</h3>
-              <p style={styles.highlightText}>{erpData?.experience?.length || 0} Positions</p>
-            </div>
-            <div style={{ ...styles.statsCard, backgroundColor: theme.cardBg, borderColor: theme.border }}>
-              <h3 style={{ ...styles.cardHeader, color: theme.textSecondary }}>Skills</h3>
-              <p style={styles.highlightText}>
-                {(erpData?.skills?.technical?.length || 0) + (erpData?.skills?.interpersonal?.length || 0) + (erpData?.skills?.intrapersonal?.length || 0)} Parsed
-              </p>
             </div>
 
             <div style={{ ...styles.wideCard, backgroundColor: theme.cardBg, borderColor: theme.border }}>
@@ -1042,6 +1405,7 @@ const Dashboard: React.FC = () => {
             </div>
           </div>
         );
+      }
 
       case 'Personal Info':
         return (
@@ -1076,8 +1440,9 @@ const Dashboard: React.FC = () => {
       case 'Work Experience':
         return (
           <div style={styles.listContainer}>
-            {erpData?.experience?.length > 0 ? (
-              erpData.experience.map((exp: any, i: number) => (
+            {erpData?.experience && erpData.experience.length > 0 ? (
+              erpData.experience.map((exp: Experience, i: number) => (
+
                 <div key={i} style={{ ...styles.listItem, backgroundColor: theme.cardBg, borderColor: theme.border }}>
                   <div style={styles.itemHeader}>
                     <div style={styles.companyLogoFallback}>🏢</div>
@@ -1099,8 +1464,9 @@ const Dashboard: React.FC = () => {
       case 'Education':
         return (
           <div style={styles.listContainer}>
-            {erpData?.education?.length > 0 ? (
-              erpData.education.map((edu: any, i: number) => (
+            {erpData?.education && erpData.education.length > 0 ? (
+
+              erpData.education.map((edu: Education, i: number) => (
                 <div key={i} style={{ ...styles.listItem, backgroundColor: theme.cardBg, borderColor: theme.border }}>
                   <div style={styles.itemHeader}>
                     <div style={styles.schoolLogoFallback}>🎓</div>
@@ -1163,8 +1529,10 @@ const Dashboard: React.FC = () => {
       case 'Projects':
         return (
           <div style={styles.listContainer}>
-            {erpData?.projects?.length > 0 ? (
-              erpData.projects.map((p: any, i: number) => (
+            {erpData?.projects && erpData.projects.length > 0 ? (
+
+              erpData.projects.map((p: Project, i: number) => (
+
                 <div key={i} style={{ ...styles.listItem, backgroundColor: theme.cardBg, borderColor: theme.border }}>
                   <div style={styles.itemHeader}>
                     <div style={styles.projectLogoFallback}>🚀</div>
@@ -1198,8 +1566,10 @@ const Dashboard: React.FC = () => {
       case 'Certifications':
         return (
           <div style={styles.listContainer}>
-            {erpData?.certifications?.length > 0 ? (
-              erpData.certifications.map((c: any, i: number) => {
+            {erpData?.certifications && erpData.certifications.length > 0 ? (
+
+              erpData.certifications.map((c: Certification, i: number) => {
+
                 const isExpired = c.expiryDate && new Date(c.expiryDate) < new Date();
                 const isExpiringSoon = c.expiryDate && !isExpired && new Date(c.expiryDate) < new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
 
@@ -1267,8 +1637,10 @@ const Dashboard: React.FC = () => {
       case 'Internships':
         return (
           <div style={styles.listContainer}>
-            {erpData?.internships?.length > 0 ? (
-              erpData.internships.map((intern: any, i: number) => (
+            {erpData?.internships && erpData.internships.length > 0 ? (
+
+              erpData.internships.map((intern: Internship, i: number) => (
+
                 <div key={i} style={{ ...styles.listItem, backgroundColor: theme.cardBg, borderColor: theme.border }}>
                   <div style={styles.itemHeader}>
                     <div style={styles.companyLogoFallback}>💡</div>
@@ -1290,8 +1662,10 @@ const Dashboard: React.FC = () => {
       case 'Volunteer Experience':
         return (
           <div style={styles.listContainer}>
-            {erpData?.volunteer?.length > 0 ? (
-              erpData.volunteer.map((vol: any, i: number) => (
+            {erpData?.volunteer && erpData.volunteer.length > 0 ? (
+
+              erpData.volunteer.map((vol: Volunteer, i: number) => (
+
                 <div key={i} style={{ ...styles.listItem, backgroundColor: theme.cardBg, borderColor: theme.border }}>
                   <div style={styles.itemHeader}>
                     <div style={styles.companyLogoFallback}>🎗️</div>
@@ -1313,8 +1687,10 @@ const Dashboard: React.FC = () => {
       case 'Extracurricular':
         return (
           <div style={styles.listContainer}>
-            {erpData?.extracurricular?.length > 0 ? (
-              erpData.extracurricular.map((act: any, i: number) => (
+            {erpData?.extracurricular && erpData.extracurricular.length > 0 ? (
+
+              erpData.extracurricular.map((act: ExtraCurricular, i: number) => (
+
                 <div key={i} style={{ ...styles.listItem, backgroundColor: theme.cardBg, borderColor: theme.border }}>
                   <h3 style={{ ...styles.itemTitle, color: theme.text }}>{act.title}</h3>
                   <p style={{ ...styles.itemDescription, color: theme.text }}>{act.description}</p>
@@ -1340,8 +1716,10 @@ const Dashboard: React.FC = () => {
       case 'Languages':
         return (
           <div style={styles.listContainer}>
-            {erpData?.languages?.length > 0 ? (
-              erpData.languages.map((lang: any, i: number) => (
+            {erpData?.languages && erpData.languages.length > 0 ? (
+
+              erpData.languages.map((lang: Language, i: number) => (
+
                 <div key={i} style={{ ...styles.listItem, display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: theme.cardBg, borderColor: theme.border }}>
                   <span style={{ fontWeight: 600, color: theme.text }}>{lang.language}</span>
                   <span style={{ color: theme.textSecondary, fontSize: '14px' }}>{lang.proficiency}</span>
@@ -1354,8 +1732,10 @@ const Dashboard: React.FC = () => {
       case 'Recommendation Letters':
         return (
           <div style={styles.listContainer}>
-            {erpData?.recommendations?.length > 0 ? (
-              erpData.recommendations.map((rec: any, i: number) => (
+            {erpData?.recommendations && erpData.recommendations.length > 0 ? (
+
+              erpData.recommendations.map((rec: Recommendation, i: number) => (
+
                 <div key={i} style={{ ...styles.listItem, backgroundColor: theme.cardBg, borderColor: theme.border, padding: '20px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
                     <div style={{ flex: 1 }}>
@@ -1447,6 +1827,393 @@ const Dashboard: React.FC = () => {
           </div>
         );
 
+      case 'Job Intelligence':
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+            <div style={{ ...styles.card, backgroundColor: theme.cardBg, borderColor: theme.border }}>
+              <h3 style={{ ...styles.cardTitle, color: theme.text }}>Analyze Target Job</h3>
+              <p style={{ color: theme.textSecondary, fontSize: '14px', marginBottom: '15px' }}>
+                Paste a Job Description below to see how your career profile matches. We'll identify skills you have and gaps you need to fill.
+              </p>
+              <textarea 
+                value={jdText}
+                id="jdTextarea"
+                onChange={(e) => setJdText(e.target.value)}
+                placeholder="Paste Job Description here..."
+                title="Job Description Input"
+                style={{
+                  width: '100%',
+                  height: '200px',
+                  padding: '12px',
+                  borderRadius: '8px',
+                  backgroundColor: theme.inputBg,
+                  color: theme.text,
+                  border: `1px solid ${theme.border}`,
+                  fontSize: '14px',
+                  resize: 'vertical'
+                }}
+              />
+              <button 
+                onClick={handleAnalyzeJob}
+                id="analyzeBtn"
+                disabled={analyzing || !jdText.trim()}
+                className={cssStyles.generateBtn}
+                style={{ marginTop: '15px', width: '100%', opacity: analyzing ? 0.7 : 1 }}
+              >
+                {analyzing ? 'Analyzing semantic fit...' : '🔍 Perform Phase 4 Analysis'}
+              </button>
+            </div>
+
+            {analysis && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                {/* Phase 5: Executive Relevance Scorecard */}
+                <div style={{ 
+                  ...styles.card, 
+                  backgroundColor: theme.cardBg, 
+                  borderColor: analysis.relevance?.color || theme.border,
+                  borderWidth: '2px'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <div>
+                      <h4 style={{ color: theme.textSecondary, fontSize: '11px', margin: 0, textTransform: 'uppercase', letterSpacing: '1px' }}>Executive Relevance Score</h4>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginTop: '5px' }}>
+                        <div style={{ fontSize: '42px', fontWeight: 900, color: analysis.relevance?.color || '#2da44e' }}>
+                          {analysis.relevance?.relevance_score ?? analysis.match_score}%
+                        </div>
+                        <div style={{ 
+                          padding: '4px 12px', 
+                          backgroundColor: (analysis.relevance?.color || '#2da44e') + '15', 
+                          color: analysis.relevance?.color || '#2da44e', 
+                          borderRadius: '20px', 
+                          fontSize: '12px', 
+                          fontWeight: 700, 
+                          border: `1px solid ${(analysis.relevance?.color || '#2da44e')}33` 
+                        }}>
+                          {analysis.relevance?.level || 'ANALYZED'}
+                        </div>
+                      </div>
+                    </div>
+                    <div style={{ textAlign: 'right' }}>
+                      <div style={{ color: theme.text, fontWeight: 700, fontSize: '18px' }}>{analysis.job_info?.title}</div>
+                      <div style={{ color: theme.textSecondary, fontSize: '14px' }}>{analysis.job_info?.company}</div>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '15px', marginTop: '25px', padding: '15px', backgroundColor: theme.bg, borderRadius: '10px', border: `1px solid ${theme.border}` }}>
+                    <div style={{ textAlign: 'center' }}>
+                      <div style={{ fontSize: '10px', color: theme.textSecondary, textTransform: 'uppercase', marginBottom: '5px', fontWeight: 600 }}>Skill Overlap</div>
+                      <div style={{ fontSize: '20px', fontWeight: 800, color: theme.text }}>{analysis.relevance?.breakdown?.skill_overlap ?? analysis.match_score}%</div>
+                    </div>
+                    <div style={{ textAlign: 'center', borderLeft: `1px solid ${theme.border}`, borderRight: `1px solid ${theme.border}` }}>
+                      <div style={{ fontSize: '10px', color: theme.textSecondary, textTransform: 'uppercase', marginBottom: '5px', fontWeight: 600 }}>Exp Alignment</div>
+                      <div style={{ fontSize: '20px', fontWeight: 800, color: theme.text }}>{analysis.relevance?.breakdown?.experience_alignment ?? analysis.match_score}%</div>
+                    </div>
+                    <div style={{ textAlign: 'center' }}>
+                      <div style={{ fontSize: '10px', color: theme.textSecondary, textTransform: 'uppercase', marginBottom: '5px', fontWeight: 600 }}>Contextual Fit</div>
+                      <div style={{ fontSize: '20px', fontWeight: 800, color: theme.text }}>{analysis.relevance?.breakdown?.contextual_fit ?? '100'}%</div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Fit Analysis */}
+                <div style={{ ...styles.card, backgroundColor: theme.cardBg, borderColor: theme.border }}>
+                  <h3 style={{ ...styles.cardTitle, color: theme.text }}>Semantic Fit Analysis</h3>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                     <div>
+                        <h4 style={{ color: '#2da44e', fontSize: '14px', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                           <span style={{ fontSize: '18px' }}>✅</span> Explicit Matches
+                        </h4>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                           {analysis.fit_analysis?.explicit_matches?.map((m: any, i: number) => (
+                             <div key={i} title={m.evidence} style={{ ...styles.tag, backgroundColor: '#2da44e1a', color: '#2da44e', borderColor: '#2da44e33', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                {m.skill} <span style={{ fontSize: '10px', opacity: 0.7 }}>[{m.confidence}]</span>
+                             </div>
+                           )) || <span>No clear matches found.</span>}
+                        </div>
+                     </div>
+
+                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                        <div>
+                           <h4 style={{ color: '#cf222e', fontSize: '14px', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              <span style={{ fontSize: '18px' }}>❌</span> Explicit Gaps
+                           </h4>
+                           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                              {analysis.fit_analysis?.explicit_gaps?.map((g: string, i: number) => (
+                                <span key={i} style={{ ...styles.tag, backgroundColor: '#cf222e1a', color: '#cf222e', borderColor: '#cf222e33' }}>{g}</span>
+                              )) || <span>None identified.</span>}
+                           </div>
+                        </div>
+                        <div>
+                           <h4 style={{ color: '#d29922', fontSize: '14px', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              <span style={{ fontSize: '18px' }}>🕵️</span> Implied Gaps
+                           </h4>
+                           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                              {analysis.fit_analysis?.implied_gaps?.map((g: string, i: number) => (
+                                <span key={i} style={{ ...styles.tag, backgroundColor: '#d299221a', color: '#d29922', borderColor: '#d2992233' }}>{g}</span>
+                              ))}
+                           </div>
+                        </div>
+                     </div>
+
+                      <div style={{ marginTop: '10px', padding: '15px', backgroundColor: theme.bg, borderRadius: '8px', border: `1px solid ${theme.border}`, position: 'relative' }}>
+                         <div style={{ position: 'absolute', top: '-10px', left: '15px', backgroundColor: theme.cardBg, padding: '0 8px', fontSize: '11px', fontWeight: 600, color: theme.textSecondary, textTransform: 'uppercase' }}>AI Explanation</div>
+                         <p style={{ color: theme.text, fontSize: '14px', lineHeight: '1.6', margin: 0 }}>{analysis.fit_analysis?.explanation}</p>
+                      </div>
+
+                      {analysis.improvement_plan?.action_items && analysis.improvement_plan.action_items.length > 0 && (
+                         <div style={{ marginTop: '5px' }}>
+                            <h4 style={{ color: theme.text, fontSize: '14px', marginBottom: '10px' }}>🚀 Strategic Improvement Plan</h4>
+                            <ul style={{ ...styles.ul, margin: 0, paddingLeft: '20px' }}>
+                               {analysis.improvement_plan.action_items.map((item: string, i: number) => (
+                                  <li key={i} style={{ ...styles.li, fontSize: '13px', color: theme.textSecondary, marginBottom: '6px' }}>{item}</li>
+                               ))}
+                            </ul>
+                         </div>
+                      )}
+                   </div>
+                </div>
+
+                {/* Phase 6: Tailored Assets Section */}
+                {!assets ? (
+                   <div style={{ ...styles.card, backgroundColor: theme.cardBg, borderColor: '#0969da33', textAlign: 'center', padding: '30px' }}>
+                      <h4 style={{ color: theme.text, marginBottom: '10px' }}>Ready to Apply?</h4>
+                      <p style={{ color: theme.textSecondary, fontSize: '14px', marginBottom: '20px' }}>
+                         Based on your {analysis.relevance?.relevance_score}% match, we can generate a tailored resume summary and cover letter optimized for this role.
+                      </p>
+                      <button 
+                        onClick={handleGenerateAssets}
+                        className={cssStyles.generateBtn}
+                        disabled={generatingAssets}
+                        style={{ width: 'auto', padding: '12px 25px', backgroundColor: '#0969da' }}
+                      >
+                        {generatingAssets ? '✨ Engineering your documents...' : '✨ Generate Tailored Assets (Phase 6)'}
+                      </button>
+                   </div>
+                ) : (
+                   <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                      {/* Resume Optimizations */}
+                      <div style={{ ...styles.card, backgroundColor: theme.cardBg, borderColor: theme.border }}>
+                         <h3 style={{ ...styles.cardTitle, color: theme.text, display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            <span>📄</span> Tailored Resume Assets
+                         </h3>
+                         
+                         <div style={{ marginBottom: '25px' }}>
+                            <div style={{ fontSize: '12px', fontWeight: 700, color: '#0969da', textTransform: 'uppercase', marginBottom: '8px' }}>Recommended Summary</div>
+                            <div style={{ padding: '15px', backgroundColor: theme.bg, borderRadius: '8px', border: `1px dashed #0969da44`, color: theme.text, fontSize: '14px', lineHeight: '1.6' }}>
+                               {(assets as Assets).resume_assets?.tailored_summary}
+                            </div>
+                         </div>
+
+                         <div>
+                            <div style={{ fontSize: '12px', fontWeight: 700, color: '#0969da', textTransform: 'uppercase', marginBottom: '8px' }}>Bullet Point Optimizations</div>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+                               {(assets as Assets).resume_assets?.bullet_optimizations?.map((b: AssetBullet, i: number) => (
+                                  <div key={i} style={{ padding: '15px', backgroundColor: theme.bg, borderRadius: '8px', border: `1px solid ${theme.border}` }}>
+                                     <div style={{ fontSize: '11px', color: '#cf222e', textDecoration: 'line-through', marginBottom: '5px' }}>{b.original}</div>
+                                     <div style={{ fontSize: '14px', color: '#2da44e', fontWeight: 500, marginBottom: '8px' }}>{b.optimized}</div>
+                                     <div style={{ fontSize: '12px', color: theme.textSecondary, fontStyle: 'italic' }}>Reason: {b.rationale}</div>
+                                  </div>
+                               ))}
+                            </div>
+                         </div>
+                      </div>
+
+                      {/* Cover Letter */}
+                      <div style={{ ...styles.card, backgroundColor: theme.cardBg, borderColor: theme.border }}>
+                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+                            <h3 style={{ ...styles.cardTitle, color: theme.text, display: 'flex', alignItems: 'center', gap: '10px', margin: 0 }}>
+                               <span>✉️</span> Personalized Cover Letter
+                            </h3>
+                            <button 
+                               onClick={() => navigator.clipboard.writeText(assets.cover_letter)}
+                               style={{ ...styles.editBtn, width: 'auto', padding: '5px 12px', fontSize: '12px' }}
+                            >
+                               Copy to Clipboard
+                            </button>
+                         </div>
+                         <textarea 
+                            value={assets.cover_letter}
+                            onChange={(e) => setAssets({...assets, cover_letter: e.target.value})}
+                            style={{
+                               width: '100%',
+                               height: '400px',
+                               padding: '20px',
+                               backgroundColor: theme.bg,
+                               color: theme.text,
+                               border: `1px solid ${theme.border}`,
+                               borderRadius: '8px',
+                               fontSize: '14px',
+                               lineHeight: '1.7',
+                               fontFamily: 'serif',
+                               resize: 'vertical'
+                            }}
+                         />
+                         <div style={{ marginTop: '10px', fontSize: '12px', color: theme.textSecondary, textAlign: 'center' }}>
+                            (You have full control to edit the letter above before using it in Phase 7)
+                         </div>
+                      </div>
+                   </div>
+                )}
+
+                {assets && !automationTaskId && (
+                    <div style={{ ...styles.card, backgroundColor: theme.cardBg, borderColor: '#2da44e33', textAlign: 'center', padding: '30px' }}>
+                        <h4 style={{ color: theme.text, marginBottom: '10px' }}>Phase 7 & 8: Responsible Automation</h4>
+                        <p style={{ color: theme.textSecondary, fontSize: '14px', marginBottom: '20px' }}>
+                            Ready to submit? This system provides <strong>Human-in-the-Loop</strong> assistance to fill forms.
+                        </p>
+                        
+                        <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', marginBottom: '15px' }}>
+                           <input 
+                              type="text" 
+                              placeholder="Direct Job Application URL..." 
+                              title="Application URL"
+                              aria-label="Application URL"
+                              id="jobAppUrl"
+                              style={{ padding: '10px', borderRadius: '5px', border: `1px solid ${theme.border}`, width: '300px', backgroundColor: theme.bg, color: theme.text }}
+                           />
+                           <button 
+                              onClick={() => {
+                                 const url = (document.getElementById('jobAppUrl') as HTMLInputElement).value;
+                                 const consent = (document.getElementById('ethicsConsent') as HTMLInputElement).checked;
+                                 if (!consent) {
+                                    alert("Please accept the Automation Disclosure to proceed.");
+                                    return;
+                                 }
+                                 if (url) handleStartAutomation(url);
+                              }}
+                              className={cssStyles.generateBtn}
+                              style={{ width: 'auto', padding: '10px 20px', backgroundColor: '#2da44e' }}
+                           >
+                              🚀 Start Assisted Submission
+                           </button>
+                        </div>
+
+                        <div style={{ padding: '12px', backgroundColor: theme.bg, borderRadius: '8px', fontSize: '12px', border: `1px solid ${theme.border}`, textAlign: 'left', maxWidth: '500px', margin: '0 auto' }}>
+                           <label style={{ display: 'flex', gap: '10px', cursor: 'pointer', alignItems: 'flex-start' }}>
+                              <input type="checkbox" id="ethicsConsent" style={{ marginTop: '3px' }} />
+                              <span style={{ color: theme.textSecondary, lineHeight: '1.4' }}>
+                                 <strong>Automation Disclosure:</strong> I acknowledge that this tool automates form-filling tasks on my behalf. I agree to monitor the "Automation Console" in real-time, handle manual interventions, and verify all data before final submission.
+                              </span>
+                           </label>
+                        </div>
+                    </div>
+                )}
+
+                {automationTaskId && (
+                    <div style={{ ...styles.card, backgroundColor: '#0d1117', borderColor: '#30363d', padding: '0', overflow: 'hidden' }}>
+                        {/* Terminal Header */}
+                        <div style={{ backgroundColor: '#161b22', padding: '10px 15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #30363d' }}>
+                           <div style={{ display: 'flex', gap: '6px' }}>
+                              <div style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: '#ff5f56' }}></div>
+                              <div style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: '#ffbd2e' }}></div>
+                              <div style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: '#27c93f' }}></div>
+                           </div>
+                           <div style={{ fontSize: '12px', color: '#8b949e', fontFamily: 'monospace' }}>
+                              {automationStatus === 'COMPLETED' ? 'SUCCESS: APPLICATION_SENT' : 
+                               automationStatus === 'FAILED' ? 'CRITICAL: ENGINE_STOPPED' : 
+                               'automation_engine_v1.sh — ACTIVE'}
+                           </div>
+                        </div>
+                        
+                        {/* Terminal Body */}
+                        <div style={{ padding: '15px', height: '350px', overflowY: 'auto', fontFamily: 'monospace', fontSize: '13px', color: '#c9d1d9', lineHeight: '1.5' }}>
+                           {automationLogs.map((log: any, i: number) => (
+                              <div key={i} style={{ marginBottom: '4px' }}>
+                                 <span style={{ color: '#8b949e' }}>[{new Date(log.timestamp).toLocaleTimeString()}]</span>{' '}
+                                 <span style={{ color: log.level === 'ERROR' ? '#ff7b72' : log.level === 'WARNING' ? '#d29922' : '#79c0ff' }}>{log.level}:</span>{' '}
+                                 {log.message}
+                              </div>
+                           ))}
+                           
+                           {interactionRequired && (
+                              <div style={{ marginTop: '15px', padding: '15px', backgroundColor: '#d299221a', border: '1px solid #d2992233', borderRadius: '6px' }}>
+                                 <div style={{ color: '#d29922', fontWeight: 600, marginBottom: '10px' }}>⚠️ ACTION REQUIRED: Manual Response Needed</div>
+                                 <p style={{ fontSize: '12px', color: '#c9d1d9', marginBottom: '10px' }}>
+                                    The automation engine encountered a custom field or unexpected interaction. Please enter the value below:
+                                 </p>
+                                 <input 
+                                    type="text" 
+                                    id="manualResponse"
+                                    placeholder="Enter response..." 
+                                    style={{ width: '100%', padding: '10px', backgroundColor: '#0d1117', border: '1px solid #30363d', color: '#f0f6fc', marginBottom: '10px', borderRadius: '4px' }}
+                                 />
+                                 <button 
+                                    onClick={() => {
+                                       const val = (document.getElementById('manualResponse') as HTMLInputElement).value;
+                                       handleProvideInteraction(val);
+                                    }}
+                                    style={{ padding: '8px 18px', backgroundColor: '#2da44e', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 600 }}
+                                 >
+                                    Submit & Continue
+                                 </button>
+                              </div>
+                           )}
+                           
+                           <div ref={logsEndRef} />
+                        </div>
+
+                        {automationStatus === 'COMPLETED' && (
+                           <div style={{ backgroundColor: '#23863622', padding: '15px', borderTop: '1px solid #23863644', textAlign: 'center' }}>
+                              <span style={{ color: '#2da44e', fontWeight: 700 }}>✅ Application Process Finished Successfully!</span>
+                              <button 
+                                 onClick={() => { setAutomationTaskId(null); setAutomationLogs([]); setAutomationStatus(''); }}
+                                 style={{ marginLeft: '15px', backgroundColor: 'transparent', border: '1px solid #2da44e', color: '#2da44e', padding: '4px 10px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}
+                              >
+                                 Dismiss Terminal
+                              </button>
+                           </div>
+                        )}
+                    </div>
+                )}
+              </div>
+            )}
+
+
+          </div>
+        );
+
+      case 'Version History':
+        return (
+          <div style={{ ...styles.card, backgroundColor: theme.cardBg, borderColor: theme.border }}>
+            <h3 style={{ ...styles.cardTitle, color: theme.text }}>Profile Snapshots</h3>
+            <p style={{ color: theme.textSecondary, fontSize: '14px', marginBottom: '15px' }}>
+              Every time you finalize your profile, a permanent version is archived. You can review your career progression below.
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {history.length > 0 ? history.map((v: Version) => (
+                <div key={v.id} style={{ 
+                  display: 'flex', 
+                  justifyContent: 'space-between', 
+                  alignItems: 'center', 
+                  padding: '16px', 
+                  backgroundColor: theme.bg, 
+                  borderRadius: '10px', 
+                  border: `1px solid ${v.is_active ? '#2da44e' : theme.border}`,
+                  boxShadow: v.is_active ? '0 0 10px #2da44e1a' : 'none'
+                }}>
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <span style={{ fontWeight: 700, color: theme.text }}>Version {v.version_number}</span>
+                      {v.is_active && <span style={{ fontSize: '10px', backgroundColor: '#2da44e', color: 'white', padding: '2px 6px', borderRadius: '4px', fontWeight: 600 }}>ACTIVE</span>}
+                    </div>
+                    <div style={{ fontSize: '13px', color: theme.textSecondary, marginTop: '4px' }}>{new Date(v.created_at).toLocaleString()}</div>
+                    <div style={{ fontSize: '12px', color: theme.textSecondary, fontStyle: 'italic', maxWidth: '300px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{v.label}</div>
+                  </div>
+                  <button 
+                    onClick={() => {
+                        window.alert("Snapshot Details: Version " + v.version_number + " created on " + new Date(v.created_at).toLocaleDateString() + ". Full rollback and side-by-side diff will be active in the next production release.");
+                    }}
+                    className={cssStyles.editBtn}
+                    style={{ width: 'auto', padding: '6px 15px', fontSize: '12px', height: 'auto' }}
+                  >
+                    View Details
+                  </button>
+                </div>
+              )) : <div style={{ textAlign: 'center', padding: '40px', color: theme.textSecondary }}>No history found yet.</div>}
+            </div>
+          </div>
+        );
+
       default:
         return <div style={{ color: theme.text }}>Section not implemented yet.</div>;
     }
@@ -1462,12 +2229,31 @@ const Dashboard: React.FC = () => {
           }
         `}
       </style>
-      <div style={{ ...styles.container, backgroundColor: theme.bg }}>
-        <nav style={{ ...styles.sidebar, backgroundColor: theme.sidebarBg, borderColor: theme.sidebarBorder }}>
-          <div style={styles.brand}>SmartApply.AI</div>
-          <div style={styles.navLinks} className="navLinks">
+      <div
+        className={cssStyles.container}
+        style={{
+          '--bg': theme.bg,
+          '--sidebar-bg': theme.sidebarBg,
+          '--sidebar-border': theme.sidebarBorder,
+          '--header-bg': theme.headerBg,
+          '--card-bg': theme.cardBg,
+          '--input-bg': theme.inputBg,
+          '--border': theme.border,
+          '--text': theme.text,
+          '--text-secondary': theme.textSecondary,
+          '--tag-bg': theme.tagBg,
+          '--tag-text': theme.tagText,
+          '--tag-border': theme.tagBorder,
+          '--nav-text': theme.navText,
+          '--active-nav-bg': theme.activeNavBg,
+          '--active-nav-text': theme.activeNavText,
+        } as React.CSSProperties}
+      >
+        <nav className={cssStyles.sidebar}>
+          <div className={cssStyles.brand}>SmartApply.AI</div>
+          <div className={`${cssStyles.navLinks} navLinks`}>
 
-            <div style={{ ...styles.sectionHeader, color: theme.textSecondary }}>Profile</div>
+            <div className={cssStyles.sectionHeader}>Profile</div>
 
             {sections.map(s => (
               <button
@@ -1477,126 +2263,112 @@ const Dashboard: React.FC = () => {
                   setIsEditing(false); // Reset edit on switch
                   setActiveSection(s.name);
                 }}
-                style={{
-                  ...styles.navItem,
-                  backgroundColor: activeSection === s.name ? theme.activeNavBg : 'transparent',
-                  color: activeSection === s.name ? theme.activeNavText : theme.navText
-                }}
+                className={`${cssStyles.navItem} ${activeSection === s.name ? cssStyles.navItemActive : ''}`}
               >
                 <span style={{ marginRight: '10px' }}>{s.icon}</span> {s.name}
               </button>
             ))}
 
-            <div style={{ ...styles.sectionHeader, color: theme.textSecondary, marginTop: '24px' }}>Settings</div>
+            <div className={cssStyles.sectionHeader} style={{ marginTop: '24px' }}>Settings</div>
 
             {/* Dark Mode Toggle */}
-            <div style={{
-              ...styles.navItem,
-              justifyContent: 'space-between',
-              color: theme.navText,
-              cursor: 'default',
-              backgroundColor: 'transparent'
-            }}>
+            <div className={cssStyles.navItem} style={{ justifyContent: 'space-between', cursor: 'default' }}>
               <span style={{ display: 'flex', alignItems: 'center' }}>
                 <span style={{ marginRight: '10px' }}>🌙</span> Dark Mode
               </span>
               <button
                 onClick={toggleTheme}
+                title={`Switch to ${darkMode ? 'light' : 'dark'} mode`}
+                aria-label={darkMode ? "Switch to light mode" : "Switch to dark mode"}
+                className={cssStyles.toggleBtn}
                 style={{
-                  ...styles.toggleBtn,
                   backgroundColor: darkMode ? '#2da44e' : '#d0d7de',
                   justifyContent: darkMode ? 'flex-end' : 'flex-start'
                 }}
               >
-                <div style={styles.toggleKnob} />
+                <div className={cssStyles.toggleKnob} />
               </button>
             </div>
 
             <button
               onClick={() => alert("Password management will be available soon. Please contact support if you need immediate assistance.")}
-              style={{
-                ...styles.navItem,
-                backgroundColor: 'transparent',
-                color: theme.navText
-              }}
+              className={cssStyles.navItem}
             >
               <span style={{ marginRight: '10px' }}>🔒</span> Change Password
             </button>
 
             <button
               onClick={() => alert("Our support team is here to help. This feature will be available shortly.")}
-              style={{
-                ...styles.navItem,
-                backgroundColor: 'transparent',
-                color: theme.navText
-              }}
+              className={cssStyles.navItem}
             >
               <span style={{ marginRight: '10px' }}>❓</span> Help & Support
             </button>
 
           </div>
 
-          <div style={styles.sidebarFooter}>
-            <button onClick={handleLogout} style={styles.logoutBtn}>Logout</button>
+          <div className={cssStyles.sidebarFooter}>
+            <button onClick={handleLogout} className={cssStyles.logoutBtn}>Logout</button>
           </div>
         </nav>
 
-        <main style={styles.main}>
-          <header style={{ ...styles.header, backgroundColor: theme.headerBg, borderColor: theme.border }}>
-            <div style={styles.userInfo}>
+        <main className={cssStyles.main}>
+          <header className={cssStyles.header}>
+            <div className={cssStyles.userInfo}>
               {profile?.user_info?.profile_image ? (
-                <img src={profile.user_info.profile_image} alt="User" style={styles.avatar} />
+                <img src={profile.user_info.profile_image} alt="User" className={cssStyles.avatar} />
               ) : (
-                <div style={styles.avatarPlaceholder}>{profile?.user_info?.full_name?.charAt(0) || 'U'}</div>
+                <div className={cssStyles.avatarPlaceholder}>{profile?.user_info?.full_name?.charAt(0) || 'U'}</div>
               )}
               <div>
-                <h2 style={{ ...styles.userName, color: theme.text }}>{profile?.user_info?.full_name || 'Professional'}</h2>
-                <p style={{ ...styles.userEmail, color: theme.textSecondary }}>{profile?.user_info?.email}</p>
+                <h2 className={cssStyles.userName}>{profile?.user_info?.full_name || 'Professional'}</h2>
+                <p className={cssStyles.userEmail}>{profile?.user_info?.email}</p>
               </div>
             </div>
-            <div style={styles.headerActions}>
+            <div className={cssStyles.headerActions}>
               <div style={{ display: 'flex', gap: '8px' }}>
                 <button
                   onClick={() => handleImportClick('linkedin')}
                   disabled={uploading}
-                  style={{ ...styles.generateBtn, backgroundColor: '#0077b5', opacity: uploading ? 0.7 : 1 }}>
+                  className={cssStyles.generateBtn} style={{ backgroundColor: '#0077b5', opacity: uploading ? 0.7 : 1 }}>
                   {uploading && importType === 'linkedin' ? '...' : '📥 LinkedIn PDF'}
                 </button>
                 <button
                   onClick={() => handleImportClick('resume')}
                   disabled={uploading}
-                  style={{ ...styles.generateBtn, backgroundColor: '#ea4335', opacity: uploading ? 0.7 : 1 }}>
+                  className={cssStyles.generateBtn} style={{ backgroundColor: '#ea4335', opacity: uploading ? 0.7 : 1 }}>
                   {uploading && importType === 'resume' ? '...' : '📄 Resume PDF'}
                 </button>
                 <input
+                  id="resumeImportFile"
                   type="file"
                   accept=".pdf"
                   ref={fileInputRef}
                   style={{ display: 'none' }}
                   onChange={handleFileChange}
+                  title="Upload PDF"
                 />
               </div>
             </div>
           </header>
 
-          <section style={styles.content}>
-            <div style={styles.topRow}>
-              <h1 style={{ ...styles.sectionTitle, color: theme.text }}>
+          <section className={cssStyles.content}>
+            <div className={cssStyles.topRow}>
+              <h1 className={cssStyles.sectionTitle}>
                 {isEditing ? `Editing ${activeSection}` : activeSection}
               </h1>
               {!isEditing ? (
                 <button
                   onClick={startEditing}
                   disabled={activeSection === 'Overview'}
-                  style={{ ...styles.editBtn, backgroundColor: theme.cardBg, color: theme.text, borderColor: theme.border, opacity: activeSection === 'Overview' ? 0.5 : 1 }}>
+                  className={cssStyles.editBtn} style={{ opacity: activeSection === 'Overview' ? 0.5 : 1 }}>
                   ✏️ Edit Section
                 </button>
               ) : (
                 <div style={{ display: 'flex', gap: '10px' }}>
-                  <button onClick={cancelEditing} style={{ ...styles.editBtn, backgroundColor: 'transparent', color: theme.textSecondary, borderColor: 'transparent' }}>
+                  <button onClick={cancelEditing} className={cssStyles.editBtn} style={{ backgroundColor: 'transparent', borderColor: 'transparent', opacity: 0.7 }}>
                     Cancel
                   </button>
-                  <button onClick={handleSave} style={{ ...styles.editBtn, backgroundColor: '#1f883d', color: 'white', borderColor: 'transparent' }}>
+                  <button onClick={handleSave} className={cssStyles.editBtn} style={{ backgroundColor: '#1f883d', color: 'white', borderColor: 'transparent' }}>
                     Save Changes
                   </button>
                 </div>
@@ -1610,12 +2382,12 @@ const Dashboard: React.FC = () => {
 
         {/* Diff Review Modal */}
         {showDiffModal && diffData && (
-          <div style={styles.modalOverlay}>
-            <div style={{ ...styles.modalContent, backgroundColor: theme.cardBg, color: theme.text }}>
-              <h2 style={{ borderBottom: `1px solid ${theme.border}`, paddingBottom: '10px' }}>Review Imports</h2>
-              <p style={{ fontSize: '14px', color: theme.textSecondary }}>The following changes will be applied to your profile. Sections not listed here remain unchanged.</p>
+          <div className={cssStyles.modalOverlay}>
+            <div className={cssStyles.modalContent}>
+              <h2 style={{ borderBottom: `1px solid var(--border)`, paddingBottom: '10px' }}>Review Imports</h2>
+              <p style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>The following changes will be applied to your profile. Sections not listed here remain unchanged.</p>
 
-              <div style={styles.diffContainer}>
+              <div className={cssStyles.diffContainer}>
                 {Object.entries(diffData.diff).map(([key, changes]: [string, any]) => (
                   <div key={key} style={{ marginBottom: '15px' }}>
                     <h3 style={{ textTransform: 'capitalize', color: '#0969da', fontSize: '16px', margin: '0 0 5px 0' }}>{key} Changes</h3>
@@ -1657,9 +2429,9 @@ const Dashboard: React.FC = () => {
                 ))}
               </div>
 
-              <div style={styles.modalActions}>
-                <button onClick={() => setShowDiffModal(false)} style={styles.cancelBtn}>Cancel</button>
-                <button onClick={confirmMerge} style={styles.saveBtn}>Confirm Update</button>
+              <div className={cssStyles.modalActions}>
+                <button onClick={() => setShowDiffModal(false)} className={cssStyles.logoutBtn} style={{ width: 'auto', padding: '10px 20px', borderColor: 'var(--border)', color: 'var(--text-secondary)' }}>Cancel</button>
+                <button onClick={confirmMerge} className={cssStyles.generateBtn} style={{ backgroundColor: '#2da44e' }}>Confirm Update</button>
               </div>
             </div>
           </div>

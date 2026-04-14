@@ -81,7 +81,33 @@ smartapply.ai/
 - Phase 1: Authentication & Trust Layer – **Completed**
 - Phase 2: Career ERP Core – **Completed**
 - Phase 3: Dashboard & User Experience Control – **Completed**
-- Phase 4–8: AI Intelligence, Scoring, Automation & Deployment – **Planned**
+- Phase 4: AI & Semantic Intelligence – **Completed**
+- Phase 5: Job Relevance Scoring Engine – **Completed**
+- Phase 6: Resume & Cover Letter Generation – **Completed**
+- Phase 7: Human-in-the-Loop Browser Automation – **Completed**
+- Phase 8: Observability, Ethics & Deployment – **Completed**
+
+---
+
+## 🛠️ Getting Started (Deployment)
+
+### Using Docker (Recommended)
+1. Ensure Docker and Docker Compose are installed.
+2. Configure `.env` in the `backend/` directory with `GOOGLE_AI_API_KEY`.
+3. Run `docker-compose up --build`.
+4. Access the Frontend at `http://localhost:5173` and Backend at `http://localhost:10000`.
+
+### Local Development
+1. **Backend**: 
+   - `cd backend`
+   - `python -m venv venv`
+   - `source venv/bin/activate` (or `.\venv\Scripts\activate`)
+   - `pip install -r requirements.txt`
+   - `uvicorn app.main:app --reload`
+2. **Frontend**:
+   - `cd frontend`
+   - `npm install`
+   - `npm run dev`
 
 ---
 
@@ -99,7 +125,7 @@ smartapply.ai/
 ## 🎓 Academic Supervision
 
 **Supervised by:**  
-**Mohd. Maaz Ansari**  
+**Praveen Kumar Saini**  
 Department of Computer Science & Engineering  
 **Chandigarh University**
 

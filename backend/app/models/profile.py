@@ -1,4 +1,5 @@
-from sqlalchemy import Column, String, Text, ForeignKey, Date, JSON, Float, Boolean, Integer
+from sqlalchemy import Column, String, Text, ForeignKey, Date, JSON, Float, Boolean, Integer, DateTime
+from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 from sqlalchemy.dialects.postgresql import UUID
 import uuid
@@ -39,6 +40,7 @@ class Profile(Base):
     experience = relationship("Experience", back_populates="profile", cascade="all, delete-orphan")
     projects = relationship("Project", back_populates="profile", cascade="all, delete-orphan")
     certifications = relationship("Certification", back_populates="profile", cascade="all, delete-orphan")
+    versions = relationship("ProfileVersion", back_populates="profile", cascade="all, delete-orphan")
 
 class Experience(Base):
     id = Column(Integer, primary_key=True, index=True)
@@ -80,3 +82,14 @@ class Certification(Base):
     issue_date = Column(Date, nullable=True)
     expiry_date = Column(Date, nullable=True)
     profile = relationship("Profile", back_populates="certifications")
+
+class ProfileVersion(Base):
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    profile_id = Column(UUID(as_uuid=True), ForeignKey("profile.id"))
+    data = Column(JSON, nullable=False) # JSON snapshot of erp_data
+    version_number = Column(Integer, default=1)
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    version_label = Column(String, nullable=True)
+    
+    profile = relationship("Profile", back_populates="versions")
