@@ -1791,9 +1791,9 @@ const Dashboard: React.FC = () => {
           <div style={{ ...styles.card, backgroundColor: theme.cardBg, borderColor: theme.border }}>
             {Object.entries(erpData?.socialLinks || {}).length > 0 ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                {Object.entries(erpData.socialLinks)
+                {Object.entries(erpData?.socialLinks || {})
                   .filter(([_, url]) => url) // Filter out empty URLs
-                  .map(([k, v]: [string, any]) => {
+                  .map(([k, v]) => {
                     const platform = detectPlatform(v);
                     return (
                       <div key={k} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px', backgroundColor: theme.bg, borderRadius: '8px', border: `1px solid ${theme.border}` }}>

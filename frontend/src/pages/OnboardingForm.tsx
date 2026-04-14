@@ -1,6 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import api from '../utils/api';
 
 const OnboardingForm: React.FC = () => {
   const { mode } = useParams();
@@ -8,21 +7,8 @@ const OnboardingForm: React.FC = () => {
   const [activeTab, setActiveTab] = useState('Personal');
   const [isSaving, setIsSaving] = useState(false);
 
-  // Initial ERP State for all 16 sections
-  const [formData, setFormData] = useState({
-    personal: { fullName: '', headline: '', summary: '', phone: '', location: '', website: '' },
-    education: [{ institution: '', degree: '', fieldOfStudy: '', gpa: '', startDate: '', endDate: '' }],
-    experience: [{ company: '', role: '', location: '', startDate: '', endDate: '', isCurrent: false, description: '' }],
-    projects: [{ title: '', description: '', link: '', technologies: '' }],
-    skills: { technical: '', interpersonal: '', intrapersonal: '' },
-    achievements: '',
-    certifications: [{ name: '', issuer: '', date: '' }],
-    volunteer: '',
-    extracurricular: '',
-    hobbies: '',
-    languages: '',
-    socialLinks: { github: '', linkedin: '', leetcode: '', portfolio: '' }
-  });
+  // Form state being stubbed for now until Phase 3/4 integration is finalized
+
 
   const tabs = [
     'Personal', 'Education', 'Experience', 'Projects', 'Skills', 
