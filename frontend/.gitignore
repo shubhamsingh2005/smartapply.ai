@@ -27,5 +27,8 @@ dist-ssr
 backend/.env
 
 # Cloud credentials
-*.json
-backend/*.json
+# Cloud credentials (avoid accidental leaks, but allow package.json etc)
+service-account-*.json
+credentials.json
+# backend/*.json - removed as it's too broad
+
