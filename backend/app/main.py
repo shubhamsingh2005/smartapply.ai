@@ -20,16 +20,27 @@ app = FastAPI(
 )
 
 # Set all CORS enabled origins
-origins = []
+# If allow_credentials=True, allow_origins cannot be ["*"]
+origins = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "http://localhost:8000",
+]
+
 if settings.BACKEND_CORS_ORIGINS:
     if isinstance(settings.BACKEND_CORS_ORIGINS, list):
-        origins = settings.BACKEND_CORS_ORIGINS
+        origins.extend(settings.BACKEND_CORS_ORIGINS)
     else:
-        origins = [str(origin) for origin in settings.BACKEND_CORS_ORIGINS]
+        # Handle comma-separated string from environment variables
+        extra_origins = [i.strip() for i in settings.BACKEND_CORS_ORIGINS.split(",")]
+        origins.extend(extra_origins)
+
+# Deduplicate origins
+origins = list(set(origins))
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins or ["*"],
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
