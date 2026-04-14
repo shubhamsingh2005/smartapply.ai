@@ -7,7 +7,12 @@ from app.db.session import engine
 
 # Create tables on startup
 # Note: In production, you'd use Alembic migrations instead of this
-Base.metadata.create_all(bind=engine)
+try:
+    Base.metadata.create_all(bind=engine)
+    db_status = "connected"
+except Exception as e:
+    print(f"Error creating tables: {e}")
+    db_status = f"error: {str(e)}"
 
 app = FastAPI(
     title=settings.APP_NAME,
@@ -37,7 +42,11 @@ def root():
 
 @app.get("/health")
 def health_check():
-    return {"status": "healthy", "service": settings.APP_NAME}
+    return {
+        "status": "healthy", 
+        "service": settings.APP_NAME,
+        "database": db_status
+    }
 
 # Include all API routers
 app.include_router(api_router, prefix=settings.API_V1_STR)

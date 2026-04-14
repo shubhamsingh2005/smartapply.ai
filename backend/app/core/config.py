@@ -60,7 +60,7 @@ class Settings(BaseSettings):
 
     # Pydantic Settings Configuration
     model_config = SettingsConfigDict(
-        case_sensitive=True, 
+        case_sensitive=False, 
         env_file=".env",
         extra="ignore"
     )
