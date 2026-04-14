@@ -23,8 +23,7 @@ engine = create_engine(
     database_url, 
     pool_pre_ping=True,
     pool_size=5,
-    max_overflow=10,
-    listens_for=None # Placeholder if we needed to add SSL args specifically
+    max_overflow=10
 )
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
