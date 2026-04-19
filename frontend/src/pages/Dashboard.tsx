@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import api from '../utils/api';
 import cssStyles from './Dashboard.module.css';
 
@@ -212,6 +213,7 @@ interface Version {
 
 
 const Dashboard: React.FC = () => {
+  const navigate = useNavigate();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [activeSection, setActiveSection] = useState('Overview');
   const [loading, setLoading] = useState(true);
@@ -282,7 +284,6 @@ const Dashboard: React.FC = () => {
     { name: 'Languages', icon: '🗣️', key: 'languages' },
     { name: 'Recommendation Letters', icon: '📝', key: 'recommendations' },
     { name: 'Social Links', icon: '🌐', key: 'socialLinks' },
-    { name: 'Job Intelligence', icon: '🧠', key: 'jobAnalysis' },
     { name: 'Version History', icon: '📜', key: 'history' }
   ];
 
@@ -2268,6 +2269,15 @@ const Dashboard: React.FC = () => {
                 <span style={{ marginRight: '10px' }}>{s.icon}</span> {s.name}
               </button>
             ))}
+
+            <div className={cssStyles.sectionHeader} style={{ marginTop: '24px' }}>AI Tools</div>
+            <button
+              onClick={() => navigate('/job-match')}
+              className={cssStyles.navItem}
+              style={{ background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(139, 92, 246, 0.1))', border: '1px solid rgba(99, 102, 241, 0.2)' }}
+            >
+              <span style={{ marginRight: '10px' }}>🎯</span> Job Match <span style={{ marginLeft: 'auto', fontSize: '10px', backgroundColor: '#6366f1', color: 'white', padding: '2px 6px', borderRadius: '4px' }}>PHASE 4</span>
+            </button>
 
             <div className={cssStyles.sectionHeader} style={{ marginTop: '24px' }}>Settings</div>
 
