@@ -112,6 +112,7 @@ const Signup: React.FC = () => {
                 style={styles.input}
                 placeholder="••••••••"
                 required
+                autoComplete="new-password"
               />
               <div style={styles.hint}>Must be at least 6 characters</div>
             </div>
@@ -125,6 +126,7 @@ const Signup: React.FC = () => {
                 style={styles.input}
                 placeholder="••••••••"
                 required
+                autoComplete="new-password"
               />
             </div>
 

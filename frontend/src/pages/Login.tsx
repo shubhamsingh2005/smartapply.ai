@@ -112,6 +112,7 @@ const Login: React.FC = () => {
                 style={styles.input}
                 placeholder="••••••••"
                 required
+                autoComplete="current-password"
               />
             </div>
 

@@ -74,6 +74,7 @@ const ResetPassword: React.FC = () => {
                             onChange={(e) => setNewPassword(e.target.value)}
                             style={styles.input}
                             placeholder="••••••••"
+                            autoComplete="new-password"
                         />
                     </div>
 
@@ -87,6 +88,7 @@ const ResetPassword: React.FC = () => {
                             onChange={(e) => setConfirmPassword(e.target.value)}
                             style={styles.input}
                             placeholder="••••••••"
+                            autoComplete="new-password"
                         />
                     </div>
 

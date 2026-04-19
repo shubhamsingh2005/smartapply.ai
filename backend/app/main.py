@@ -7,12 +7,13 @@ from app.db.session import engine
 
 # Create tables on startup
 # Note: In production, you'd use Alembic migrations instead of this
-try:
-    Base.metadata.create_all(bind=engine)
-    db_status = "connected"
-except Exception as e:
-    print(f"Error creating tables: {e}")
-    db_status = f"error: {str(e)}"
+# try:
+#     Base.metadata.create_all(bind=engine)
+#     db_status = "connected"
+# except Exception as e:
+#     print(f"Error creating tables: {e}")
+#     db_status = f"error: {str(e)}"
+db_status = "skipping auto-create"
 
 app = FastAPI(
     title=settings.APP_NAME,
