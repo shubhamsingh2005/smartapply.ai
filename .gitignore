@@ -24,4 +24,6 @@ render-cli.zip
 supabase-bin/
 supabase-cli.tar.gz
 supabase/
+gcloud-bin/
+gcloud-cli.zip
 .vercel
