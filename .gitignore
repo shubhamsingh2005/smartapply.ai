@@ -24,3 +24,4 @@ render-cli.zip
 supabase-bin/
 supabase-cli.tar.gz
 supabase/
+.vercel
