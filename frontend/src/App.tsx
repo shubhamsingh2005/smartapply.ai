@@ -9,6 +9,7 @@ import OnboardingManual from './pages/OnboardingManual';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
 import JobMatch from './pages/JobMatch';
+import AutoApply from './pages/AutoApply';
 
 function App() {
   return (
@@ -24,6 +25,7 @@ function App() {
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/job-match" element={<JobMatch />} />
+        <Route path="/auto-apply" element={<AutoApply />} />
 
         {/* Default route redirects to Login */}
         <Route path="/" element={<Navigate to="/login" replace />} />

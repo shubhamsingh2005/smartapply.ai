@@ -2,6 +2,8 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Resume - SmartApply.AI</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body {
@@ -61,6 +63,8 @@
   /* ─── CERTIFICATIONS / EXTRAS ─── */
   .cert-list { list-style: disc; padding-left: 16px; }
   .cert-list li { font-size: 9.5pt; color: #333; margin-bottom: 2px; }
+  .proj-tech { font-weight:400; font-size:9pt; color:#666; }
+  .proj-link { font-size:9pt; color:#1a3a5c; text-decoration: none; }
 </style>
 </head>
 <body>
@@ -100,9 +104,7 @@
       <div class="entry-date">{{ job.start_date }}{% if job.end_date %} – {{ job.end_date }}{% else %} – Present{% endif %}</div>
     </div>
     {% if job.bullets %}
-    <ul class="bullets">
-      {% for bullet in job.bullets %}<li>{{ bullet }}</li>{% endfor %}
-    </ul>
+    <ul class="bullets">{% for bullet in job.bullets %}<li>{{ bullet }}</li>{% endfor %}</ul>
     {% elif job.description %}
     <ul class="bullets"><li>{{ job.description }}</li></ul>
     {% endif %}
@@ -118,8 +120,8 @@
   {% for proj in projects %}
   <div class="entry">
     <div class="entry-header">
-      <div class="entry-title">{{ proj.title }}{% if proj.tech_stack %} <span style="font-weight:400;font-size:9pt;color:#666;">| {{ proj.tech_stack }}</span>{% endif %}</div>
-      {% if proj.url %}<a href="{{ proj.url }}" style="font-size:9pt;color:#1a3a5c;">View</a>{% endif %}
+      <div class="entry-title">{{ proj.title }}{% if proj.tech_stack %} <span class="proj-tech">| {{ proj.tech_stack }}</span>{% endif %}</div>
+      {% if proj.url %}<a href="{{ proj.url }}" class="proj-link">View</a>{% endif %}
     </div>
     {% if proj.description %}
     <ul class="bullets"><li>{{ proj.description }}</li></ul>
@@ -162,9 +164,7 @@
 {% if certifications %}
 <div class="section">
   <div class="section-title">Certifications</div>
-  <ul class="cert-list">
-    {% for cert in certifications %}<li>{{ cert.name }}{% if cert.issuer %} — {{ cert.issuer }}{% endif %}</li>{% endfor %}
-  </ul>
+  <ul class="cert-list">{% for cert in certifications %}<li>{{ cert.name }}{% if cert.issuer %} — {{ cert.issuer }}{% endif %}</li>{% endfor %}</ul>
 </div>
 {% endif %}
 

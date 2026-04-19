@@ -53,6 +53,7 @@
   flex-direction: column;
   gap: 4px;
   overflow-y: auto;
+  /* stylelint-disable-next-line property-no-vendor-prefix, plugin/no-unsupported-browser-features */
   scrollbar-width: none; /* Firefox */
   -ms-overflow-style: none; /* IE and Edge */
 }
@@ -439,3 +440,15 @@
 
 .diffContainer { flex: 1; overflow-y: auto; margin: 20px 0; padding-right: 10px; }
 .modalActions { display: flex; justify-content: flex-end; gap: 10px; padding-top: 16px; border-top: 1px solid rgba(100,100,100,0.1); }
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}

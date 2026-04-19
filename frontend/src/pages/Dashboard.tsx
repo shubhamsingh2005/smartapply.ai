@@ -11,7 +11,7 @@ interface PersonalInfo {
   about?: string;
   headline?: string;
   summary?: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 
@@ -115,7 +115,7 @@ interface ERPData {
   languages?: Language[];
   recommendations?: Recommendation[];
   socialLinks?: Record<string, string>;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 
@@ -225,7 +225,7 @@ const Dashboard: React.FC = () => {
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const [importType, setImportType] = useState<'linkedin' | 'resume' | null>(null);
   const [uploading, setUploading] = useState(false);
-  const [diffData, setDiffData] = useState<any>(null); // To store proposed changes for review
+  const [diffData, setDiffData] = useState<{ diff: Record<string, unknown>; rawNew: ERPData } | null>(null); // To store proposed changes for review
   const [showDiffModal, setShowDiffModal] = useState(false);
   const [jdText, setJdText] = useState('');
   const [analysis, setAnalysis] = useState<Analysis | null>(null);
@@ -247,7 +247,7 @@ const Dashboard: React.FC = () => {
 
   const fetchHistory = async () => {
     try {
-      const response = await api.get('/api/v1/profile/history');
+      const response = await api.get('/api/v1/profile/versions');
       setHistory(response.data);
     } catch {
       console.error("Failed to fetch history");
@@ -337,7 +337,7 @@ const Dashboard: React.FC = () => {
     try {
       const response = await api.post('/api/v1/ai/analyze-match', { jd_text: jdText });
       setAnalysis(response.data);
-    } catch (error) {
+    } catch {
       console.error("Match Analysis failed");
       alert("Analysis failed. Check your API key or JD text.");
     } finally {
@@ -388,7 +388,7 @@ const Dashboard: React.FC = () => {
 
   // Status Polling Effect
   useEffect(() => {
-    let interval: any;
+    let interval: ReturnType<typeof setInterval>;
     if (automationTaskId && automationStatus !== 'COMPLETED' && automationStatus !== 'FAILED') {
       interval = setInterval(async () => {
         try {
@@ -397,7 +397,7 @@ const Dashboard: React.FC = () => {
           setAutomationLogs(res.data.logs);
           setInteractionRequired(res.data.interaction_required);
           logsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-        } catch (e) {
+        } catch {
           console.error("Status check failed");
         }
       }, 2000);
@@ -418,8 +418,10 @@ const Dashboard: React.FC = () => {
       setProfile(updatedProfile);
       setIsEditing(false);
       alert('Profile updated successfully. Your changes have been saved.');
-    } catch (error: any) {
-      alert('Unable to save changes: ' + (error.response?.data?.detail || error.message));
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const detail = (error as { response?: { data?: { detail?: string } } }).response?.data?.detail;
+      alert('Unable to save changes: ' + (detail || errorMessage));
     }
   };
 
@@ -430,13 +432,13 @@ const Dashboard: React.FC = () => {
   };
 
   // Helper to handle nested changes
-  const updateEditData = (section: string, value: any) => {
-    setEditData((prev: any) => ({ ...prev, [section]: value }));
+  const updateEditData = (section: keyof ERPData, value: unknown) => {
+    setEditData((prev) => ({ ...prev, [section]: value }));
   };
 
   // Helper for deeply nested updates (e.g., arrays)
-  const updateArrayItem = (section: string, index: number, field: string, value: any) => {
-    const list = [...(editData[section] || [])];
+  const updateArrayItem = (section: keyof ERPData, index: number, field: string, value: unknown) => {
+    const list = [...((editData[section] as Record<string, unknown>[]) || [])];
     if (!list[index]) list[index] = {};
     list[index][field] = value;
     updateEditData(section, list);
@@ -475,17 +477,17 @@ const Dashboard: React.FC = () => {
     }
   };
 
-  const prepareDiff = (newData: any) => {
+  const prepareDiff = (newData: ERPData) => {
     // Generate a simple diff object for visualization
     // We compare non-empty fields from newData against current editData
-    const diff: any = {};
+    const diff: Record<string, unknown> = {};
 
     // Personal Changes
     if (newData.personal) {
-      const personalDiff: any = {};
+      const personalDiff: Record<string, { old: string; new: unknown }> = {};
       Object.entries(newData.personal).forEach(([k, v]) => {
-        if (v && v !== editData.personal?.[k]) {
-          personalDiff[k] = { old: editData.personal?.[k] || '(empty)', new: v };
+        if (v && v !== (editData.personal as Record<string, unknown> | undefined)?.[k]) {
+          personalDiff[k] = { old: String((editData.personal as Record<string, unknown> | undefined)?.[k] || '(empty)'), new: v };
         }
       });
       if (Object.keys(personalDiff).length > 0) diff.personal = personalDiff;
@@ -578,8 +580,8 @@ const Dashboard: React.FC = () => {
     return { name: 'Website', icon: '🔗' };
   };
 
-  const mergeData = (newData: any) => {
-    setEditData((prev: any) => {
+  const mergeData = (newData: ERPData) => {
+    setEditData((prev) => {
       // Create a copy of current data, but we will overwrite sections present in newData
       const merged = JSON.parse(JSON.stringify(prev));
 
@@ -587,7 +589,7 @@ const Dashboard: React.FC = () => {
       if (newData.personal) {
         merged.personal = {
           ...merged.personal,
-          ...Object.fromEntries(Object.entries(newData.personal).filter(([_, v]) => v))
+          ...Object.fromEntries(Object.entries(newData.personal).filter(([, v]) => !!v))
         };
       }
 
@@ -626,8 +628,8 @@ const Dashboard: React.FC = () => {
     setIsEditing(true);
   };
 
-  const addNewItem = (section: string, template: any) => {
-    const list = [...(editData[section] || [])];
+  const addNewItem = <K extends keyof ERPData>(section: K, template: ERPData[K] extends (infer U)[] ? U : never) => {
+    const list = [...((editData[section] as unknown[]) || [])];
     list.unshift(template);
     updateEditData(section, list);
   };
@@ -1206,6 +1208,7 @@ const Dashboard: React.FC = () => {
                     value={lang.language || ''}
                     onChange={(e) => updateArrayItem('languages', i, 'language', e.target.value)}
                   />
+                  <label htmlFor={`proficiency-${i}`} className={cssStyles.srOnly}>Proficiency</label>
                   <select
                     id={`proficiency-${i}`}
                     style={{ ...styles.input, backgroundColor: theme.inputBg, color: theme.text, borderColor: theme.border }}
@@ -1301,7 +1304,7 @@ const Dashboard: React.FC = () => {
       case 'Social Links':
         return (
           <div style={{ ...styles.card, backgroundColor: theme.cardBg, borderColor: theme.border }}>
-            {Object.entries(editData.socialLinks || {}).map(([key, url]: [string, any]) => {
+            {Object.entries(editData.socialLinks || {}).map(([key, url]) => {
               const platform = detectPlatform(url);
               return (
                 <div key={key} style={{ ...styles.formGroup, position: 'relative' }}>
@@ -1925,7 +1928,7 @@ const Dashboard: React.FC = () => {
                            <span style={{ fontSize: '18px' }}>✅</span> Explicit Matches
                         </h4>
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                           {analysis.fit_analysis?.explicit_matches?.map((m: any, i: number) => (
+                           {analysis.fit_analysis?.explicit_matches?.map((m, i: number) => (
                              <div key={i} title={m.evidence} style={{ ...styles.tag, backgroundColor: '#2da44e1a', color: '#2da44e', borderColor: '#2da44e33', display: 'flex', alignItems: 'center', gap: '5px' }}>
                                 {m.skill} <span style={{ fontSize: '10px', opacity: 0.7 }}>[{m.confidence}]</span>
                              </div>
@@ -2033,6 +2036,8 @@ const Dashboard: React.FC = () => {
                             </button>
                          </div>
                          <textarea 
+                            title="Cover Letter Content"
+                            placeholder="Your personalized cover letter will appear here..."
                             value={assets.cover_letter}
                             onChange={(e) => setAssets({...assets, cover_letter: e.target.value})}
                             style={{
@@ -2118,7 +2123,7 @@ const Dashboard: React.FC = () => {
                         
                         {/* Terminal Body */}
                         <div style={{ padding: '15px', height: '350px', overflowY: 'auto', fontFamily: 'monospace', fontSize: '13px', color: '#c9d1d9', lineHeight: '1.5' }}>
-                           {automationLogs.map((log: any, i: number) => (
+                           {automationLogs.map((log: AutomationLog, i: number) => (
                               <div key={i} style={{ marginBottom: '4px' }}>
                                  <span style={{ color: '#8b949e' }}>[{new Date(log.timestamp).toLocaleTimeString()}]</span>{' '}
                                  <span style={{ color: log.level === 'ERROR' ? '#ff7b72' : log.level === 'WARNING' ? '#d29922' : '#79c0ff' }}>{log.level}:</span>{' '}
@@ -2274,9 +2279,16 @@ const Dashboard: React.FC = () => {
             <button
               onClick={() => navigate('/job-match')}
               className={cssStyles.navItem}
-              style={{ background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(139, 92, 246, 0.1))', border: '1px solid rgba(99, 102, 241, 0.2)' }}
+              style={{ background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(139, 92, 246, 0.1))', border: '1px solid rgba(99, 102, 241, 0.2)', marginBottom: '8px' }}
             >
               <span style={{ marginRight: '10px' }}>🎯</span> Job Match <span style={{ marginLeft: 'auto', fontSize: '10px', backgroundColor: '#6366f1', color: 'white', padding: '2px 6px', borderRadius: '4px' }}>PHASE 4</span>
+            </button>
+            <button
+              onClick={() => navigate('/auto-apply')}
+              className={cssStyles.navItem}
+              style={{ background: 'linear-gradient(135deg, rgba(34, 197, 94, 0.1), rgba(16, 185, 129, 0.1))', border: '1px solid rgba(34, 197, 94, 0.2)' }}
+            >
+              <span style={{ marginRight: '10px' }}>🤖</span> Auto Apply <span style={{ marginLeft: 'auto', fontSize: '10px', backgroundColor: '#10b981', color: 'white', padding: '2px 6px', borderRadius: '4px' }}>PHASE 7</span>
             </button>
 
             <div className={cssStyles.sectionHeader} style={{ marginTop: '24px' }}>Settings</div>
@@ -2398,12 +2410,12 @@ const Dashboard: React.FC = () => {
               <p style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>The following changes will be applied to your profile. Sections not listed here remain unchanged.</p>
 
               <div className={cssStyles.diffContainer}>
-                {Object.entries(diffData.diff).map(([key, changes]: [string, any]) => (
+                {Object.entries(diffData.diff).map(([key, changes]) => (
                   <div key={key} style={{ marginBottom: '15px' }}>
                     <h3 style={{ textTransform: 'capitalize', color: '#0969da', fontSize: '16px', margin: '0 0 5px 0' }}>{key} Changes</h3>
 
                     {/* Personal Field Diffs */}
-                    {key === 'personal' && Object.entries(changes).map(([field, val]: [string, any]) => (
+                    {key === 'personal' && Object.entries(changes as Record<string, { old: string; new: string }>).map(([field, val]) => (
                       <div key={field} style={{ display: 'flex', fontSize: '13px', marginBottom: '4px' }}>
                         <span style={{ fontWeight: 600, width: '100px' }}>{field}:</span>
                         <span style={{ color: '#f85149', textDecoration: 'line-through', marginRight: '10px' }}>{val.old}</span>
@@ -2422,7 +2434,7 @@ const Dashboard: React.FC = () => {
                     )}
 
                     {/* Skill Diffs */}
-                    {key === 'skills' && Object.entries(changes).map(([cat, val]: [string, any]) => (
+                    {key === 'skills' && Object.entries(changes as Record<string, { countOld: number; countNew: number }>).map(([cat, val]) => (
                       <div key={cat} style={{ fontSize: '13px', marginLeft: '10px', marginTop: '5px' }}>
                         <strong>{cat} Skills:</strong> Replace {val.countOld} items with <span style={{ color: '#2da44e' }}>{val.countNew} items</span>.
                       </div>
@@ -2451,7 +2463,7 @@ const Dashboard: React.FC = () => {
   );
 };
 
-const EmptyState = ({ theme, text }: { theme: any, text: string }) => (
+const EmptyState = ({ theme, text }: { theme: typeof lightTheme, text: string }) => (
   <div style={{ padding: '20px', textAlign: 'center', color: theme.textSecondary, fontStyle: 'italic' }}>
     {text}
   </div>

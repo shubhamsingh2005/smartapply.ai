@@ -54,8 +54,10 @@ const JobMatch: React.FC = () => {
       const { data } = await api.post('/api/v1/ai/analyze-match', { jd_text: jdText });
       setAnalysis(data);
       setStep('results');
-    } catch (e: any) {
-      setError(e.response?.data?.detail || 'Analysis failed. Please try again.');
+    } catch (e: unknown) {
+      const errorMessage = e instanceof Error ? e.message : 'Analysis failed. Please try again.';
+      const detail = (e as { response?: { data?: { detail?: string } } }).response?.data?.detail;
+      setError(detail || errorMessage);
       setStep('input');
     }
   };
@@ -70,8 +72,9 @@ const JobMatch: React.FC = () => {
       });
       setAssets(data);
       setStep('assets');
-    } catch (e: any) {
-      setError(e.response?.data?.detail || 'Asset generation failed.');
+    } catch (e: unknown) {
+      const detail = (e as { response?: { data?: { detail?: string } } }).response?.data?.detail;
+      setError(detail || 'Asset generation failed.');
       setStep('results');
     }
   };
@@ -91,7 +94,7 @@ const JobMatch: React.FC = () => {
       a.download = 'tailored_resume.pdf';
       a.click();
       URL.revokeObjectURL(url);
-    } catch (e: any) {
+    } catch {
       setError('Resume PDF generation failed. Please try again.');
     } finally {
       setDownloadingResume(false);
@@ -113,7 +116,7 @@ const JobMatch: React.FC = () => {
       a.download = 'cover_letter.pdf';
       a.click();
       URL.revokeObjectURL(url);
-    } catch (e: any) {
+    } catch {
       setError('Cover letter PDF generation failed. Please try again.');
     } finally {
       setDownloadingCL(false);
@@ -143,8 +146,9 @@ const JobMatch: React.FC = () => {
       {/* ── STEP: INPUT ─────────────────────────────────────────────────── */}
       {step === 'input' && (
         <div className={styles.card}>
-          <label className={styles.label}>Paste Job Description</label>
+          <label htmlFor="jdInput" className={styles.label}>Paste Job Description</label>
           <textarea
+            id="jdInput"
             className={styles.textarea}
             rows={14}
             placeholder="Paste the full job description here (title, responsibilities, requirements, company info)..."

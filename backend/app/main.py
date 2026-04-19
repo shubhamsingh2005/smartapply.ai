@@ -1,9 +1,13 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from app.core.config import settings
 from app.api.v1.api import api_router
 from app.db.base import Base
 from app.db.session import engine
+import os
+
+os.makedirs("app/static/screenshots", exist_ok=True)
 
 # Create tables on startup
 # Note: In production, you'd use Alembic migrations instead of this
@@ -19,6 +23,8 @@ app = FastAPI(
     title=settings.APP_NAME,
     openapi_url=f"{settings.API_V1_STR}/openapi.json"
 )
+
+app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
 # Set all CORS enabled origins
 # If allow_credentials=True, allow_origins cannot be ["*"]
