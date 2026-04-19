@@ -1,35 +1,39 @@
 import logging
-from sqlalchemy import create_engine
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
 from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
+import ssl
 database_url = settings.DATABASE_URL
+connect_args = {}
 
-# Handle potential issues with DATABASE_URL
-if not database_url:
-    logger.error("DATABASE_URL is not set!")
-elif database_url.startswith("postgres://"):
-    # Render and some other platforms use postgres://, but SQLAlchemy 1.4+ requires postgresql://
-    database_url = database_url.replace("postgres://", "postgresql://", 1)
+if "sslmode=require" in database_url:
+    # Explicitly enable SSL for asyncpg which doesn't support sslmode in URL
+    database_url = database_url.replace("?sslmode=require", "").replace("&sslmode=require", "")
+    ctx = ssl.create_default_context()
+    ctx.check_hostname = False
+    ctx.verify_mode = ssl.CERT_NONE  # Common for managed DBs like Supabase
+    connect_args["ssl"] = ctx
+    logger.info("DATABASE_SSL_ENABLED: Detected production environment.")
 
-# Check if we are using the default localhost URL in production
-if settings.ENV == "production" and "localhost" in database_url:
-    logger.warning("Using default localhost database URL in production environment!")
+# Standardize async scheme
+database_url = database_url.replace("postgresql://", "postgresql+asyncpg://", 1).replace("postgres://", "postgresql+asyncpg://", 1)
 
-# For Supabase/external DBs, ensure we have a reasonable timeout and pool settings
-engine = create_engine(
-    database_url, 
+engine = create_async_engine(
+    database_url,
     pool_pre_ping=True,
-    pool_size=5,
-    max_overflow=10
+    connect_args=connect_args
 )
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+AsyncSessionLocal = sessionmaker(
+    bind=engine,
+    class_=AsyncSession,
+    expire_on_commit=False
+)
+
+async def get_db():
+    async with AsyncSessionLocal() as session:
+        yield session
+        await session.commit()
