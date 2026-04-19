@@ -52,6 +52,7 @@ class Experience(Base):
     end_date = Column(Date, nullable=True)
     is_current = Column(Boolean, default=False)
     description = Column(Text, nullable=True)
+    is_deleted = Column(Boolean, default=False)
     profile = relationship("Profile", back_populates="experience")
 
 class Education(Base):
@@ -63,6 +64,7 @@ class Education(Base):
     gpa = Column(Float, nullable=True)
     start_date = Column(Date, nullable=True)
     end_date = Column(Date, nullable=True)
+    is_deleted = Column(Boolean, default=False)
     profile = relationship("Profile", back_populates="education")
 
 class Project(Base):
@@ -72,6 +74,7 @@ class Project(Base):
     description = Column(Text, nullable=True)
     link = Column(String, nullable=True)
     technologies = Column(JSON, default=[])
+    is_deleted = Column(Boolean, default=False)
     profile = relationship("Profile", back_populates="projects")
 
 class Certification(Base):
@@ -81,6 +84,7 @@ class Certification(Base):
     issuer = Column(String, nullable=False)
     issue_date = Column(Date, nullable=True)
     expiry_date = Column(Date, nullable=True)
+    is_deleted = Column(Boolean, default=False)
     profile = relationship("Profile", back_populates="certifications")
 
 class ProfileVersion(Base):
