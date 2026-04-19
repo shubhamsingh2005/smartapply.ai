@@ -8,6 +8,7 @@ import OnboardingReview from './pages/OnboardingReview';
 import OnboardingManual from './pages/OnboardingManual';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
+import JobMatch from './pages/JobMatch';
 
 function App() {
   return (
@@ -22,6 +23,7 @@ function App() {
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/job-match" element={<JobMatch />} />
 
         {/* Default route redirects to Login */}
         <Route path="/" element={<Navigate to="/login" replace />} />

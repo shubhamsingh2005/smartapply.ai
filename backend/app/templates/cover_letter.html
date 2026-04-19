@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Georgia', 'Times New Roman', serif;
+    font-size: 11pt;
+    color: #1a1a1a;
+    background: #fff;
+    line-height: 1.7;
+    padding: 56px 64px;
+    max-width: 700px;
+    margin: 0 auto;
+  }
+  .sender-info { margin-bottom: 28px; }
+  .sender-name { font-size: 16pt; font-weight: 700; color: #1a3a5c; font-family: Arial, sans-serif; }
+  .sender-contact { font-size: 10pt; color: #555; margin-top: 4px; font-family: Arial, sans-serif; }
+
+  .date { font-size: 10pt; color: #444; margin-bottom: 20px; font-family: Arial, sans-serif; }
+
+  .recipient { margin-bottom: 22px; font-family: Arial, sans-serif; font-size: 10.5pt; }
+  .recipient .company { font-weight: 700; }
+
+  .subject { font-weight: 700; font-size: 11pt; color: #1a3a5c; margin-bottom: 18px; font-family: Arial, sans-serif; }
+
+  .salutation { margin-bottom: 14px; }
+
+  .body p { margin-bottom: 14px; text-align: justify; }
+
+  .closing { margin-top: 28px; }
+  .closing-word { margin-bottom: 32px; }
+  .sig-name { font-weight: 700; font-size: 11pt; }
+  .sig-title { font-size: 10pt; color: #555; }
+
+  hr.divider {
+    border: none; border-top: 2px solid #1a3a5c;
+    margin-bottom: 24px;
+  }
+</style>
+</head>
+<body>
+
+<div class="sender-info">
+  <div class="sender-name">{{ name }}</div>
+  <div class="sender-contact">
+    {% if email %}{{ email }}{% endif %}
+    {% if phone %} · {{ phone }}{% endif %}
+    {% if linkedin %} · {{ linkedin }}{% endif %}
+  </div>
+</div>
+
+<hr class="divider" />
+
+<div class="date">{{ date }}</div>
+
+<div class="recipient">
+  <div>Hiring Team</div>
+  <div class="company">{{ company_name }}</div>
+</div>
+
+<div class="subject">Re: Application for {{ job_title }}</div>
+
+<div class="salutation">Dear Hiring Manager,</div>
+
+<div class="body">
+  {{ cover_letter_body | safe }}
+</div>
+
+<div class="closing">
+  <div class="closing-word">Sincerely,</div>
+  <div class="sig-name">{{ name }}</div>
+  {% if headline %}<div class="sig-title">{{ headline }}</div>{% endif %}
+</div>
+
+</body>
+</html>
