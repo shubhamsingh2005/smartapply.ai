@@ -37,8 +37,20 @@ const Signup: React.FC = () => {
       navigate('/otp-verify', { state: { email } });
     } catch (err: any) {
       console.error('Signup error:', err);
-      const msg = err.response?.data?.detail || 'Signup failed. Please try again.';
-      alert(msg);
+      const detail = err.response?.data?.detail || '';
+      // If account exists but not verified, resend OTP and redirect
+      if (err.response?.status === 400 && detail.toLowerCase().includes('already exists')) {
+        try {
+          await api.post('/api/v1/auth/resend-otp', { email });
+          alert('An account with this email already exists but is not yet verified. We resent a new OTP — check your inbox!');
+          navigate('/otp-verify', { state: { email } });
+        } catch (_) {
+          alert('An account with this email already exists. Please sign in instead.');
+          navigate('/login');
+        }
+      } else {
+        alert(detail || 'Signup failed. Please try again.');
+      }
     } finally {
       setIsLoading(false);
     }

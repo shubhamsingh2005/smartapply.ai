@@ -34,8 +34,18 @@ const Login: React.FC = () => {
       navigate('/dashboard');
     } catch (err: any) {
       console.error('Login error:', err);
-      const msg = err.response?.data?.detail || 'Invalid email or password.';
-      alert(msg);
+      const status = err.response?.status;
+      const detail = err.response?.data?.detail || '';
+      // Account exists but email not verified — resend OTP and redirect
+      if (status === 403 && detail.toLowerCase().includes('verify')) {
+        try {
+          await api.post('/api/v1/auth/resend-otp', { email });
+        } catch (_) { /* ignore resend errors */ }
+        alert('Your email is not verified yet. We just resent a new OTP — check your inbox!');
+        navigate('/otp-verify', { state: { email } });
+      } else {
+        alert(detail || 'Invalid email or password.');
+      }
     } finally {
       setIsLoading(false);
     }
