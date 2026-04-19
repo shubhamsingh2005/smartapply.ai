@@ -97,6 +97,7 @@ const Login: React.FC = () => {
                 style={styles.input}
                 placeholder="name@example.com"
                 required
+                autoComplete="username"
               />
             </div>
 

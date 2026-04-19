@@ -93,13 +93,14 @@ const Signup: React.FC = () => {
           <form onSubmit={handleSignup}>
             <div style={styles.inputGroup}>
               <label style={styles.label}>Email address</label>
-              <input
+                <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 style={styles.input}
                 placeholder="name@example.com"
                 required
+                autoComplete="username"
               />
             </div>
 
