@@ -8,11 +8,22 @@ frontend/.env.vercel
 # Service account keys
 backend/smartapply-ai-*.json
 
+# Python
+backend/venv/
+**/__pycache__/
+*.pyc
+*.pyo
+
 # Node
 node_modules/
+frontend/dist/
 
 # Logs
 *.log
+
+# Project docs / PDFs (large binary files)
+*.pdf
+CHAPTER_1.txt
 
 # OS files
 .DS_Store
