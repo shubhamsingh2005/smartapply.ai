@@ -34,7 +34,7 @@ const Signup: React.FC = () => {
     try {
       await api.post('/api/v1/auth/signup/email', { email, password });
       alert('Account created! Please check your email for the OTP verification code.');
-      navigate('/verify-otp', { state: { email } });
+      navigate('/otp-verify', { state: { email } });
     } catch (err: any) {
       console.error('Signup error:', err);
       const msg = err.response?.data?.detail || 'Signup failed. Please try again.';
