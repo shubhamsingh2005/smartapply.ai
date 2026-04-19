@@ -5,7 +5,14 @@ from app.core.config import settings
 from app.api.v1.api import api_router
 from app.db.base import Base
 from app.db.session import engine
+from app.core.limiter import limiter
+from slowapi.errors import RateLimitExceeded
+from slowapi import _rate_limit_exceeded_handler
+from app.core.redis_client import init_redis
+from app.core.logging import get_logger
 import os
+
+logger = get_logger(__name__)
 
 os.makedirs("app/static/screenshots", exist_ok=True)
 
@@ -23,6 +30,16 @@ app = FastAPI(
     title=settings.APP_NAME,
     openapi_url=f"{settings.API_V1_STR}/openapi.json"
 )
+
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+@app.on_event("startup")
+async def startup_event():
+    await init_redis()
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+    logger.info("Database schema synchronized.")
 
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
