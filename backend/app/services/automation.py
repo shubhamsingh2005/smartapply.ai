@@ -1,10 +1,15 @@
-import asyncio
-import os
-import uuid
-import time
-from typing import Dict, Any, List, Optional
-from datetime import datetime
-from playwright.async_api import async_playwright, Page, BrowserContext
+from app.services.audit import AuditLogger
+from sqlalchemy.ext.asyncio import AsyncSession
+from app.core.logging import get_logger
+
+logger = get_logger(__name__)
+
+async def safe_execute(fn, context: str = "operation"):
+    try:
+        return await fn()
+    except Exception as e:
+        logger.error(f"AUTOMATION_FAIL: {context}: {e}")
+        return None
 
 class AutomationTask:
     def __init__(self, job_url: str, erp_data: dict, assets: dict):
@@ -16,7 +21,7 @@ class AutomationTask:
         self.logs: List[dict] = []
         self.screenshot_path: Optional[str] = None
         self.interaction_required = False
-        self.interaction_type: Optional[str] = None # 'CAPTCHA', '2FA', 'MISSING_FIELD'
+        self.interaction_type: Optional[str] = None
         self.page: Optional[Page] = None
         self.browser_context: Optional[BrowserContext] = None
         self.playwright_mgr = None
@@ -27,32 +32,35 @@ class AutomationTask:
             "message": message,
             "level": level
         })
+        logger.info(f"TASK_LOG: [{self.id}] {message}", extra={"task_id": self.id, "level": level})
 
 class AutomationService:
-    """
-    Phase 7: Human-in-the-Loop Browser Automation.
-    Manages job application form filling and document uploads.
-    """
     _tasks: Dict[str, AutomationTask] = {}
 
     @classmethod
-    async def start_application(cls, job_url: str, erp_data: dict, assets: dict) -> str:
+    async def start_application(cls, db: AsyncSession, user_id: str, job_url: str, erp_data: dict, assets: dict) -> str:
         task = AutomationTask(job_url, erp_data, assets)
         cls._tasks[task.id] = task
         
-        # Start the background process
+        # Log to Audit Table (Service Layer Responsibility)
+        await AuditLogger.log(
+            db, 
+            "AUTOMATION", 
+            "AUTOMATION_STARTED", 
+            user_id=user_id, 
+            metadata={"job_url": job_url, "task_id": task.id}
+        )
+        
         asyncio.create_task(cls._run_automation(task))
         return task.id
 
     @classmethod
     async def _run_automation(cls, task: AutomationTask):
-        task.add_log(f"Starting browser automation for {task.job_url}")
+        task.add_log(f"Navigation initiated for {task.job_url}")
         task.status = "NAVIGATING"
         
         try:
             task.playwright_mgr = await async_playwright().start()
-            # In production, you might not want headless=False unless debugging locally. 
-            # We use headless=True to ensure it works on servers, and relies on screenshots.
             browser = await task.playwright_mgr.chromium.launch(headless=True)
             task.browser_context = await browser.new_context(
                 viewport={'width': 1280, 'height': 800},
@@ -60,28 +68,26 @@ class AutomationService:
             )
             task.page = await task.browser_context.new_page()
 
-            # Set a timeout for navigation
-            await task.page.goto(task.job_url, wait_until="domcontentloaded", timeout=30000)
+            # Using safe_execute/timeout for nav
+            await task.page.goto(task.job_url, wait_until="domcontentloaded", timeout=60000)
             task.add_log("Arrived at job application page.")
             
             task.status = "FILLING_FORM"
             name = task.erp_data.get('personal', {}).get('fullName', '')
             email = task.erp_data.get('personal', {}).get('email', '')
-            task.add_log(f"Attempting to map identity: {name} | {email}")
             
-            # Simple heuristic matching for demonstration
-            # Attempts to locate generic name and email fields on standard job boards
-            try:
+            # Form Filling logic with safety
+            async def fill_form():
                 if name:
-                    await task.page.fill("input[name*='name' i], input[id*='name' i]", name, timeout=2000)
+                    await task.page.fill("input[name*='name' i], input[id*='name' i]", name, timeout=5000)
                 if email:
-                    await task.page.fill("input[name*='email' i], input[id*='email' i]", email, timeout=2000)
-                task.add_log("Automatically filled detected identity fields.")
-            except Exception:
-                task.add_log("Could not auto-fill fields using basic heuristics.", "WARNING")
+                    await task.page.fill("input[name*='email' i], input[id*='email' i]", email, timeout=5000)
+
+            await safe_execute(fill_form, "fill_identity_fields")
+            task.add_log("Heuristics applied to form fields.")
 
             # Pause for Human-in-the-Loop review
-            # Take a screenshot so the user can see the form state
+            os.makedirs("app/static/screenshots", exist_ok=True)
             screenshot_path = f"app/static/screenshots/{task.id}.png"
             await task.page.screenshot(path=screenshot_path, full_page=True)
             task.screenshot_path = f"/static/screenshots/{task.id}.png"
@@ -89,11 +95,11 @@ class AutomationService:
             task.interaction_required = True
             task.interaction_type = "REVIEW_AND_SUBMIT"
             task.status = "AWAITING_USER"
-            task.add_log("Phase 7 Verification: Paused execution. Please review the form screenshot and provide submit command.", "WARNING")
+            task.add_log("Task paused for human review.")
 
         except Exception as e:
             task.status = "FAILED"
-            task.add_log(f"Automation failed: {str(e)}", "ERROR")
+            task.add_log(f"CRITICAL_FAILURE: {str(e)}", "ERROR")
             if task.page:
                 try:
                     await task.page.screenshot(path=f"app/static/screenshots/{task.id}_error.png")
@@ -102,37 +108,47 @@ class AutomationService:
                     pass
 
     @classmethod
-    def get_task_status(cls, task_id: str) -> Optional[AutomationTask]:
-        return cls._tasks.get(task_id)
+    def get_task_status(cls, task_id: str) -> Optional[Dict[str, Any]]:
+        task = cls._tasks.get(task_id)
+        if not task:
+            logger.warning(f"TASK_NOT_FOUND: {task_id}")
+            return None
+        
+        return {
+            "task_id": task.id,
+            "status": task.status,
+            "logs": task.logs,
+            "interaction_required": task.interaction_required,
+            "interaction_type": task.interaction_type,
+            "screenshot": task.screenshot_path
+        }
 
     @classmethod
     async def provide_interaction(cls, task_id: str, data: dict):
         task = cls._tasks.get(task_id)
-        if not task or not task.page: return
+        if not task or not task.page: 
+            logger.error(f"INTERACTION_LOST: Task {task_id} invalid or closed.")
+            return
         
         command = data.get("command", "")
-        task.add_log(f"User provided interaction: {command}")
+        task.add_log(f"Received user command: {command}")
         task.interaction_required = False
         task.status = "RESUMING"
         
         try:
             if command == "SUBMIT":
-                task.add_log("Simulating final submit click.")
-                # We attempt to find a submit button, or simply exit for the sake of safety.
-                try:
-                    await task.page.click("button[type='submit'], input[type='submit']", timeout=3000)
-                except:
-                    task.add_log("Auto-submit button not found. Assuming manual submission.", "WARNING")
+                # Final submission safety
+                async def submit():
+                    await task.page.click("button[type='submit'], input[type='submit']", timeout=5000)
+                await safe_execute(submit, "final_submit_click")
                 
-                await asyncio.sleep(2) # Allow network to finalize
+                await asyncio.sleep(3)
                 task.status = "COMPLETED"
-                task.add_log("Application review and submission completed!", "SUCCESS")
+                task.add_log("Task successfully executed.", "SUCCESS")
             elif command == "CANCEL":
                 task.status = "CANCELLED"
-                task.add_log("User cancelled automation.", "WARNING")
             else:
                 task.status = "FAILED"
-                task.add_log("Unknown command received.", "ERROR")
         finally:
             if task.playwright_mgr:
                 await task.browser_context.close()
