@@ -1,6 +1,9 @@
 # Environment files
 .env
+.env.*
 backend/.env
+frontend/.env
+frontend/.env.vercel
 
 # Service account keys
 backend/smartapply-ai-*.json
@@ -14,3 +17,10 @@ node_modules/
 # OS files
 .DS_Store
 Thumbs.db
+
+# Downloaded CLI Tools
+render-bin/
+render-cli.zip
+supabase-bin/
+supabase-cli.tar.gz
+supabase/

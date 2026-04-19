@@ -4,7 +4,7 @@ import os
 from sqlalchemy import create_engine, text
 
 # Get the database URL from .env or hardcoded
-database_url = "postgresql://postgres:S%40rb%40ni30love@db.eykzvnobchpzgkxlhnvj.supabase.co:5432/postgres?sslmode=require"
+database_url = "postgresql://postgres.eykzvnobchpzgkxlhnvj:S%40rb%40ni30love@aws-1-ap-southeast-1.pooler.supabase.com:5432/postgres?sslmode=require"
 
 print(f"Testing connection to: {database_url.split('@')[1]}")
 
