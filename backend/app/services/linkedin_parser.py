@@ -43,32 +43,86 @@ class LinkedInParser:
             return {"error": "AI Configuration missing"}
 
         prompt = f"""
-        You are an expert LinkedIn profile parser. 
-        Extract all career information from the following LinkedIn PDF text into a strict JSON format matching our ERP schema.
+        You are a world-class AI LinkedIn profile parser. 
+        Your task is to extract all career information from the provided LinkedIn PDF text and map it to the REQUIRED ERP SCHEMA.
         
-        REQUIRED SCHEMA:
+        CRITICAL INSTRUCTIONS:
+        1. The text extraction often mixes two columns (sidebar and main content). Carefully separate them.
+        2. "Experience" usually contains company name, role, dates (e.g., "Jun 2021 - Present"), and descriptions.
+        3. "Education" contains school, degree (e.g., "Bachelor of Science"), and dates.
+        4. "Skills" should be categorized into technical (e.g., Python, AWS), interpersonal (e.g., Leadership), and intrapersonal (e.g., Growth Mindset).
+        5. "Certifications" are often in the sidebar. Extract the name, issuer, and date.
+        6. Standardize all dates to "YYYY-MM". If a date is "Present", use "Present".
+        7. If a field is missing, use an empty string "" or an empty list [].
+        
+        REQUIRED ERP SCHEMA:
         {{
-            "personal": {{ "fullName": "", "headline": "", "summary": "", "phone": "", "location": "", "website": "" }},
-            "education": [{{ "institution": "", "degree": "", "fieldOfStudy": "", "startDate": "", "endDate": "" }}],
-            "experience": [{{ "company": "", "role": "", "location": "", "startDate": "", "endDate": "", "isCurrent": false, "description": "" }}],
-            "projects": [{{ "title": "", "description": "", "link": "", "technologies": [] }}],
-            "skills": {{ "technical": [], "interpersonal": [], "intrapersonal": [] }},
+            "personal": {{ 
+                "fullName": "Full Name", 
+                "headline": "Current Role | Headline", 
+                "summary": "Professional Summary", 
+                "phone": "", 
+                "location": "City, Country", 
+                "website": "" 
+            }},
+            "education": [
+                {{ 
+                    "institution": "University Name", 
+                    "degree": "Degree (e.g. BS)", 
+                    "fieldOfStudy": "Field of Study", 
+                    "startDate": "YYYY-MM", 
+                    "endDate": "YYYY-MM" 
+                }}
+            ],
+            "experience": [
+                {{ 
+                    "company": "Company Name", 
+                    "role": "Job Title", 
+                    "location": "City, Country", 
+                    "startDate": "YYYY-MM", 
+                    "endDate": "YYYY-MM or Present", 
+                    "isCurrent": true/false, 
+                    "description": "Responsibilities and achievements" 
+                }}
+            ],
+            "projects": [
+                {{ 
+                    "title": "", 
+                    "description": "", 
+                    "link": "", 
+                    "technologies": [] 
+                }}
+            ],
+            "skills": {{ 
+                "technical": [], 
+                "interpersonal": [], 
+                "intrapersonal": [] 
+            }},
             "achievements": [],
-            "certifications": [{{ "name": "", "issuer": "", "date": "" }}],
-            "socialLinks": {{ "github": "", "linkedin": "", "leetcode": "", "portfolio": "" }}
+            "certifications": [
+                {{ 
+                    "name": "Certification Name", 
+                    "issuer": "Issuing Org", 
+                    "date": "YYYY-MM" 
+                }}
+            ],
+            "socialLinks": {{ 
+                "github": "", 
+                "linkedin": "LinkedIn profile URL if found in text", 
+                "leetcode": "", 
+                "portfolio": "" 
+            }}
         }}
 
-        LINKEDIN TEXT:
+        RAW LINKEDIN TEXT:
+        ---
         {raw_text}
+        ---
 
-        Rules:
-        1. Return ONLY valid JSON.
-        2. Do not include markdown formatting.
-        3. Map LinkedIn sections accurately.
-        4. Standardize dates to YYYY-MM.
+        FINAL RULE: Return ONLY the JSON object. Do not explain anything. 
         """
 
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={settings.GOOGLE_AI_API_KEY}"
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key={settings.GOOGLE_AI_API_KEY}"
         
         payload = {
             "contents": [{

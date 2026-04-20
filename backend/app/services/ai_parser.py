@@ -49,33 +49,56 @@ class AIResumeParser:
             }
 
         prompt = f"""
-        You are an expert ATS (Applicant Tracking System) parser. 
-        Extract all career information from the following resume text into a strict JSON format.
+        You are a world-class ATS (Applicant Tracking System) parser. 
+        Extract all career information from the following resume text into the REQUIRED ERP SCHEMA.
         
-        REQUIRED SCHEMA:
+        CRITICAL INSTRUCTIONS:
+        1. Extract fullName, headline, summary, phone, location, and website from personal info.
+        2. Format experience, education, and projects as lists of objects.
+        3. Skills MUST be categorized: technical (tools/tech), interpersonal (soft skills), intrapersonal (self-management).
+        4. Standardize all dates to "YYYY-MM". If a date says "Present", use "Present".
+        5. Return ONLY valid JSON. No markdown summaries.
+
+        REQUIRED ERP SCHEMA:
         {{
-            "personal": {{ "fullName": "", "headline": "", "summary": "", "phone": "", "location": "", "website": "" }},
-            "education": [{{ "institution": "", "degree": "", "fieldOfStudy": "", "startDate": "", "endDate": "" }}],
-            "experience": [{{ "company": "", "role": "", "location": "", "startDate": "", "endDate": "", "isCurrent": false, "description": "" }}],
-            "projects": [{{ "title": "", "description": "", "link": "", "technologies": [] }}],
-            "skills": {{ "technical": [], "interpersonal": [], "intrapersonal": [] }},
+            "personal": {{ 
+                "fullName": "", "headline": "", "summary": "", "phone": "", "location": "", "website": "" 
+            }},
+            "education": [
+                {{ 
+                    "institution": "", "degree": "", "fieldOfStudy": "", "startDate": "YYYY-MM", "endDate": "YYYY-MM" 
+                }}
+            ],
+            "experience": [
+                {{ 
+                    "company": "", "role": "", "location": "", "startDate": "YYYY-MM", "endDate": "YYYY-MM or Present", "isCurrent": false, "description": "" 
+                }}
+            ],
+            "projects": [
+                {{ 
+                    "title": "", "description": "", "link": "", "technologies": [] 
+                }}
+            ],
+            "skills": {{ 
+                "technical": [], "interpersonal": [], "intrapersonal": [] 
+            }},
             "achievements": [],
-            "certifications": [{{ "name": "", "issuer": "", "date": "" }}],
-            "socialLinks": {{ "github": "", "linkedin": "", "leetcode": "", "portfolio": "" }}
+            "certifications": [
+                {{ 
+                    "name": "", "issuer": "", "date": "YYYY-MM" 
+                }}
+            ],
+            "socialLinks": {{ 
+                "github": "", "linkedin": "", "leetcode": "", "portfolio": "" 
+            }}
         }}
 
         RESUME TEXT:
         {raw_text}
-
-        Rules:
-        1. Return ONLY valid JSON.
-        2. Do not include markdown formatting like ```json.
-        3. If information is missing for a field, use an empty string or list.
-        4. Standardize dates to "YYYY-MM" or "YYYY-MM-DD".
         """
 
         # Using Gemini 2.0 Flash for superior parsing and speed
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={settings.GOOGLE_AI_API_KEY}"
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key={settings.GOOGLE_AI_API_KEY}"
         
         payload = {
             "contents": [{

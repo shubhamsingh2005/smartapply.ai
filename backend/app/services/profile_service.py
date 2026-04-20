@@ -44,11 +44,15 @@ class ProfileService:
         latest_version = await self.repo.get_latest_version(profile.id)
 
         erp_data = {
-            "headline": profile.headline,
-            "summary": profile.summary,
-            "phone": profile.phone,
-            "location": profile.location,
-            "website": profile.website,
+            "personal": {
+                "fullName": profile.user.full_name if profile.user else "",
+                "email": profile.user.email if profile.user else "",
+                "headline": profile.headline,
+                "summary": profile.summary,
+                "phone": profile.phone,
+                "location": profile.location,
+                "website": profile.website,
+            },
             "skills": profile.skills,
             "socialLinks": profile.social_links,
             "achievements": profile.achievements,

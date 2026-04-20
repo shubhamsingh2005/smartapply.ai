@@ -11,6 +11,25 @@ class ProfileRepository:
     def __init__(self, db: AsyncSession):
         self.db = db
 
+    def _parse_date(self, date_str: Optional[str]):
+        if not date_str:
+            return None
+        import datetime
+        if isinstance(date_str, (datetime.date, datetime.datetime)):
+            return date_str
+        
+        date_str = str(date_str).strip().lower()
+        if date_str in ["present", "current", "ongoing", "now", ""]:
+            return None
+            
+        # Try common formats
+        for fmt in ("%Y-%m-%d", "%Y-%m", "%B %Y", "%b %Y", "%Y"):
+            try:
+                return datetime.datetime.strptime(date_str, fmt).date()
+            except:
+                continue
+        return None
+
     async def get_profile_by_user_id(self, user_id: uuid.UUID) -> Optional[Profile]:
         from sqlalchemy.orm import selectinload
         result = await self.db.execute(
@@ -50,6 +69,10 @@ class ProfileRepository:
                 profile.location = personal.get("location", profile.location)
                 profile.phone = personal.get("phone", profile.phone)
                 profile.website = personal.get("website", profile.website)
+                
+                # Update User's full name if provided in personal info
+                if personal.get("fullName") and profile.user:
+                    profile.user.full_name = personal.get("fullName")
     
              # ERP Sections (Direct mapping with persistence of existing data)
              profile.skills = profile_data.get("skills", profile.skills)
@@ -108,7 +131,8 @@ class ProfileRepository:
                 record.location = exp.get("location", record.location)
                 record.description = exp.get("description", record.description)
                 record.is_current = exp.get("isCurrent", record.is_current)
-                # Date parsing handled outside or in validator
+                record.start_date = self._parse_date(exp.get("startDate"))
+                record.end_date = self._parse_date(exp.get("endDate"))
                 income_ids.append(exp_id)
             else:
                 new_exp = Experience(
@@ -117,7 +141,9 @@ class ProfileRepository:
                     role=exp.get("role"),
                     location=exp.get("location"),
                     description=exp.get("description"),
-                    is_current=exp.get("isCurrent", False)
+                    is_current=exp.get("isCurrent", False),
+                    start_date=self._parse_date(exp.get("startDate")),
+                    end_date=self._parse_date(exp.get("endDate"))
                 )
                 self.db.add(new_exp)
         
@@ -141,6 +167,8 @@ class ProfileRepository:
                 record.degree = item.get("degree", record.degree)
                 record.field_of_study = item.get("fieldOfStudy", record.field_of_study)
                 record.gpa = item.get("gpa", record.gpa)
+                record.start_date = self._parse_date(item.get("startDate"))
+                record.end_date = self._parse_date(item.get("endDate"))
                 income_ids.append(item_id)
             else:
                 new_item = Education(
@@ -148,7 +176,9 @@ class ProfileRepository:
                     institution=item.get("institution"),
                     degree=item.get("degree"),
                     field_of_study=item.get("fieldOfStudy"),
-                    gpa=item.get("gpa")
+                    gpa=item.get("gpa"),
+                    start_date=self._parse_date(item.get("startDate")),
+                    end_date=self._parse_date(item.get("endDate"))
                 )
                 self.db.add(new_item)
         for e_id, record in existing_map.items():
@@ -197,12 +227,14 @@ class ProfileRepository:
                 record = existing_map[item_id]
                 record.name = item.get("name", record.name)
                 record.issuer = item.get("issuer", record.issuer)
+                record.issue_date = self._parse_date(item.get("date"))
                 income_ids.append(item_id)
             else:
                 new_item = Certification(
                     profile_id=profile_id,
                     name=item.get("name"),
-                    issuer=item.get("issuer")
+                    issuer=item.get("issuer"),
+                    issue_date=self._parse_date(item.get("date"))
                 )
                 self.db.add(new_item)
         for e_id, record in existing_map.items():
