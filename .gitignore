@@ -38,3 +38,9 @@ supabase/
 gcloud-bin/
 gcloud-cli.zip
 .vercel
+backend/scratch/
+.idea/
+.vscode/
+frontend/node_modules/
+backend/venv/
+**/__pycache__/
