@@ -58,6 +58,11 @@ const OnboardingReview: React.FC = () => {
   const [loading, setLoading] = useState(!location.state?.parsedData);
 
   useEffect(() => {
+    if (erpData && (erpData as any).error) {
+      alert(`AI Parsing Warning: ${(erpData as any).error}`);
+      setErpData({}); // Clear the error data
+    }
+
     if (!erpData || Object.keys(erpData).length === 0) {
       const fetchData = async () => {
         try {
