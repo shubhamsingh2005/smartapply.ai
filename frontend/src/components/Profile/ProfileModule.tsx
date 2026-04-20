@@ -1,5 +1,6 @@
 import React from 'react';
 import { useProfileStore } from '../../stores/useProfileStore';
+import { IdentitySyncModule } from './IdentitySyncModule';
 
 interface ProfileModuleProps {
   activeSection: string;
@@ -103,6 +104,8 @@ export const ProfileModule: React.FC<ProfileModuleProps> = ({
           </div>
         </div>
       );
+    case 'Identity Sync':
+      return <IdentitySyncModule theme={theme} />;
     default:
       return <div style={{ color: theme.text }}>View for {activeSection} not yet extracted.</div>;
   }

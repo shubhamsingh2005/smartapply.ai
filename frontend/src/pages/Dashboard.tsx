@@ -31,6 +31,7 @@ const Dashboard: React.FC = () => {
     { name: 'Work Experience', icon: '💼' },
     { name: 'Projects', icon: '🚀' },
     { name: 'Analytics', icon: '📊' },
+    { name: 'Identity Sync', icon: '🔄' },
   ];
 
   if (isLoading) return <div className={cssStyles.loading}>Loading Production Environment...</div>;

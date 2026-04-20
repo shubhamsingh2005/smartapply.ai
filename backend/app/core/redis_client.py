@@ -22,14 +22,17 @@ class SafeCache:
                     return None
                 await asyncio.sleep(0.1)
 
-    async def setex(self, key: str, seconds: int, value: str, retries: int = 1) -> bool:
+    async def set(self, key: str, value: str, exp: Optional[int] = None, retries: int = 1) -> bool:
         for attempt in range(retries + 1):
             try:
-                await self.redis.setex(key, seconds, value)
+                if exp:
+                    await self.redis.setex(key, exp, value)
+                else:
+                    await self.redis.set(key, value)
                 return True
             except Exception as e:
                 if attempt == retries:
-                    logger.warning(f"CACHE_SET_FAIL: Redis SETEX failed after {retries} retries: {e}")
+                    logger.warning(f"CACHE_SET_FAIL: Redis SET failed after {retries} retries: {e}")
                     return False
                 await asyncio.sleep(0.1)
 

@@ -9,6 +9,8 @@ from app.services.profile_service import ProfileService
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from app.core.logging import get_logger
+from app.services.linkedin_parser import LinkedInParser
+from app.services.ai_parser import AIResumeParser
 
 logger = get_logger(__name__)
 from datetime import datetime

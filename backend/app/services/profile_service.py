@@ -35,11 +35,10 @@ class ProfileService:
             lambda: self.repo.get_profile_by_user_id(user_id), 
             f"fetch_profile_db_{user_id}"
         )
-        
         if not profile:
             return None
             
-        from app.services.profile_metrics import ProfileMetricsService
+        from app.services.metrics import ProfileMetricsService
         
         version_count = await self.repo.get_version_count(profile.id)
         latest_version = await self.repo.get_latest_version(profile.id)
@@ -95,7 +94,7 @@ class ProfileService:
         }
 
         # Safe Cache Set
-        await cache.setex(cache_key, 600, json.dumps(full_data))
+        await cache.set(cache_key, json.dumps(full_data), exp=600)
         return full_data
 
     async def synchronize_profile(self, user_id: uuid.UUID, profile_data: Dict[str, Any]):
@@ -106,8 +105,19 @@ class ProfileService:
         
         async def sync_op():
             profile = await self.repo.upsert_profile(user_id, profile_data)
-            if "experience" in profile_data:
-                await self.repo.update_experience_delta(profile.id, profile_data["experience"])
+            
+            # Deep Deltas for all child collections
+            sections = {
+                "experience": self.repo.update_experience_delta,
+                "education": self.repo.update_education_delta,
+                "projects": self.repo.update_project_delta,
+                "certifications": self.repo.update_certification_delta
+            }
+            
+            for key, sync_fn in sections.items():
+                if key in profile_data:
+                    await sync_fn(profile.id, profile_data[key])
+                    
             return profile
 
         profile = await safe_execute(sync_op, f"sync_profile_{user_id}")
@@ -130,8 +140,8 @@ class ProfileService:
             if not version:
                 raise EntityNotFoundError("Profile version not found")
             
-            await self.repo.upsert_profile(user_id, version.data)
-            await cache.delete(f"profile:full:{user_id}")
+            # Perform Deep Restore via Synchronize
+            await self.synchronize_profile(user_id, version.data)
             return True
 
         return await safe_execute(restore_op, f"restore_version_{version_id}")
